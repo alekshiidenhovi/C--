@@ -1,5 +1,5 @@
 [package]
-name = "cmm-compiler"
+name = "cmm"
 version = "0.1.0"
 edition = "2024"
 
