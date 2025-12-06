@@ -2,10 +2,43 @@ use anyhow::{Context, Result, anyhow};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+/// Checks if a given path has a specific file extension.
+///
+/// # Arguments
+///
+/// * `path`: The path to check.
+/// * `extension`: The desired file extension (e.g., "c", "i").
+///
+/// # Returns
+///
+/// `true` if the path has the specified extension, `false` otherwise.
+fn is_valid_path_extension(path: &Path, extension: &str) -> bool {
+    path.extension().map_or(false, |ext| ext == extension)
+}
+
+/// Runs the GCC preprocessor on a C source file.
+///
+/// This function invokes `gcc -E -P` to perform preprocessing, expanding
+/// macros and handling include directives, but stopping before compilation.
+///
+/// # Arguments
+///
+/// * `input_path`: The path to the input C source file. Must have a `.c` extension.
+/// * `output_path`: An optional path for the preprocessed output file. If `None`, the output file
+///   will be created in the same directory as the input file with the extension `.i`.
+///
+/// # Returns
+///
+/// Returns `Ok(())` on successful preprocessing, or an `anyhow::Error` if:
+/// - The input path does not have a `.c` extension.
+/// - The input path does not exist or is not a file.
+/// - The output path (if provided) does not have a `.i` extension.
+/// - The output file already exists when no explicit `output_path` is given.
+/// - GCC preprocessing fails or is not found.
 pub fn run_gcc_preprocessor(input_path: &Path, output_path: Option<&Path>) -> Result<()> {
     println!("Invoking GCC Preprocessor...");
 
-    if input_path.extension().map_or(true, |ext| ext != "c") {
+    if !is_valid_path_extension(input_path, "c") {
         return Err(anyhow!(
             "Input path must have a '.c' extension: {}",
             input_path.display()
@@ -21,7 +54,7 @@ pub fn run_gcc_preprocessor(input_path: &Path, output_path: Option<&Path>) -> Re
 
     let final_output_path: PathBuf = match output_path {
         Some(path) => {
-            if path.extension().map_or(true, |ext| ext != "i") {
+            if !is_valid_path_extension(path, "i") {
                 return Err(anyhow!("Output path must end with '.i' extension"));
             }
             path.to_path_buf()
@@ -73,6 +106,24 @@ pub fn run_gcc_preprocessor(input_path: &Path, output_path: Option<&Path>) -> Re
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_valid_path_extension() {
+        let path = Path::new("src/compiler_driver.c");
+        assert!(is_valid_path_extension(path, "c"));
+    }
+
+    #[test]
+    fn test_invalid_path_extension() {
+        let path = Path::new("src/compiler_driver.rs");
+        assert!(!is_valid_path_extension(path, "c"));
+    }
+
+    #[test]
+    fn test_no_path_extension() {
+        let path = Path::new("src/compiler_driver");
+        assert!(!is_valid_path_extension(path, "c"));
+    }
 
     #[test]
     fn test_preprocessor_invalid_input_file_extension() {
