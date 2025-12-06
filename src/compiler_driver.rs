@@ -1,20 +1,7 @@
+use crate::common::validation::is_valid_path_extension;
 use anyhow::{Context, Result, anyhow};
 use std::path::{Path, PathBuf};
 use std::process::Command;
-
-/// Checks if a given path has a specific file extension.
-///
-/// # Arguments
-///
-/// * `path`: The path to check.
-/// * `extension`: The desired file extension (e.g., "c", "i").
-///
-/// # Returns
-///
-/// `true` if the path has the specified extension, `false` otherwise.
-fn is_valid_path_extension(path: &Path, extension: &str) -> bool {
-    path.extension().map_or(false, |ext| ext == extension)
-}
 
 /// Runs the GCC preprocessor on a C source file.
 ///
