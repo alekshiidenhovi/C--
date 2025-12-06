@@ -103,6 +103,10 @@ pub fn run_gcc_preprocessor(input_path: &Path, output_path: Option<&Path>) -> Re
     }
 }
 
+pub fn run_compiler_driver(input_path: &Path) -> Result<()> {
+    run_gcc_preprocessor(input_path, None)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
