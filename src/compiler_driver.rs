@@ -1,6 +1,6 @@
-use crate::common::validation::is_valid_path_extension;
-use anyhow::{Context, Result, anyhow};
-use std::path::{Path, PathBuf};
+use crate::common::validation::validate_preprocessor_paths;
+use anyhow::Context;
+use std::path::Path;
 use std::process::Command;
 
 /// Runs the GCC preprocessor on a C source file.
@@ -11,76 +11,26 @@ use std::process::Command;
 /// # Arguments
 ///
 /// * `input_path`: The path to the input C source file. Must have a `.c` extension.
-/// * `output_path`: An optional path for the preprocessed output file. If `None`, the output file
-///   will be created in the same directory as the input file with the extension `.i`.
+/// * `output_path`: The path to the output preprocessed C source file. Must have an `.i` extension.
 ///
 /// # Returns
 ///
 /// Returns `Ok(())` on successful preprocessing, or an `anyhow::Error` if:
-/// - The input path does not have a `.c` extension.
-/// - The input path does not exist or is not a file.
-/// - The output path (if provided) does not have a `.i` extension.
-/// - The output file already exists when no explicit `output_path` is given.
 /// - GCC preprocessing fails or is not found.
-pub fn run_gcc_preprocessor(input_path: &Path, output_path: Option<&Path>) -> Result<()> {
+pub fn run_gcc_preprocessor(input_path: &Path, output_path: &Path) -> anyhow::Result<()> {
     println!("Invoking GCC Preprocessor...");
-
-    if !is_valid_path_extension(input_path, "c") {
-        return Err(anyhow!(
-            "Input path must have a '.c' extension: {}",
-            input_path.display()
-        ));
-    }
-
-    if !input_path.is_file() {
-        return Err(anyhow!(
-            "Input file does not exist or is not a file: {}",
-            input_path.display()
-        ));
-    }
-
-    let final_output_path: PathBuf = match output_path {
-        Some(path) => {
-            if !is_valid_path_extension(path, "i") {
-                return Err(anyhow!("Output path must end with '.i' extension"));
-            }
-            path.to_path_buf()
-        }
-        None => {
-            let input_file_stem = input_path.file_stem().ok_or_else(|| {
-                anyhow!(
-                    "Failed to get file stem from input path: {}",
-                    input_path.display()
-                )
-            })?;
-
-            let mut path_buf = PathBuf::from(input_file_stem);
-            path_buf.set_extension("i");
-
-            if path_buf.is_file() {
-                return Err(anyhow!(
-                    "Output file already exists: {}",
-                    path_buf.display()
-                ));
-            }
-            path_buf
-        }
-    };
 
     let status = Command::new("gcc")
         .arg("-E")
         .arg("-P")
         .arg(input_path)
         .arg("-o")
-        .arg(&final_output_path)
+        .arg(output_path)
         .status()
         .context("Failed to execute GCC preprocessing. Is it installed and in your PATH?")?;
 
     if status.success() {
-        println!(
-            "Preprocessed file created at: {}",
-            final_output_path.display()
-        );
+        println!("Preprocessed file created at: {}", output_path.display());
         Ok(())
     } else {
         Err(anyhow::anyhow!(
@@ -90,29 +40,7 @@ pub fn run_gcc_preprocessor(input_path: &Path, output_path: Option<&Path>) -> Re
     }
 }
 
-pub fn run_compiler_driver(input_path: &Path) -> Result<()> {
-    run_gcc_preprocessor(input_path, None)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_valid_path_extension() {
-        let path = Path::new("src/compiler_driver.c");
-        assert!(is_valid_path_extension(path, "c"));
-    }
-
-    #[test]
-    fn test_invalid_path_extension() {
-        let path = Path::new("src/compiler_driver.rs");
-        assert!(!is_valid_path_extension(path, "c"));
-    }
-
-    #[test]
-    fn test_no_path_extension() {
-        let path = Path::new("src/compiler_driver");
-        assert!(!is_valid_path_extension(path, "c"));
-    }
+pub fn run_compiler_driver(input_path: &Path) -> anyhow::Result<()> {
+    let (input_path, output_path) = validate_preprocessor_paths(input_path, None)?;
+    run_gcc_preprocessor(&input_path, &output_path)
 }
