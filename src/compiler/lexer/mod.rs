@@ -6,8 +6,19 @@ use regex::Regex;
 use std::sync::LazyLock;
 use tokens::Token;
 
-type ParseResult<T> = Result<(String, T), LexerError>;
-type Parser = fn(&str) -> ParseResult<Token>;
+/// Represents the result of a parsing operation, which can either be a success
+/// containing the remaining unparsed string and the parsed value, or a `LexerError` after a
+/// failure.
+///
+/// # Type Parameters
+///
+/// * `T`: The type of the successfully parsed value.
+type LexerParseResult<T> = Result<(String, T), LexerError>;
+
+/// A type alias for a function that parses a string slice into a `LexerParseResult<Token>`.
+///
+/// This is commonly used for defining lexer functions that consume input and produce tokens.
+type LexerParser = fn(&str) -> LexerParseResult<Token>;
 
 /// Tokenizes an input string into a vector of `Token`s.
 ///
@@ -46,7 +57,7 @@ type Parser = fn(&str) -> ParseResult<Token>;
 pub fn tokenize(input_str: &str) -> Vec<Token> {
     let mut string_stream = input_str.to_string();
     let mut token_vec = Vec::new();
-    let parsers: Vec<Parser> = vec![
+    let parsers: Vec<LexerParser> = vec![
         parse_identifier_or_keyword,
         parse_constant,
         parse_semicolon,
@@ -81,7 +92,7 @@ pub fn tokenize(input_str: &str) -> Vec<Token> {
 ///
 /// On successful parsing, return a tuple of remaining input string and the parsed semicolon.
 /// On failure, returns a non-matching pattern error.
-fn parse_semicolon(input_str: &str) -> ParseResult<Token> {
+fn parse_semicolon(input_str: &str) -> LexerParseResult<Token> {
     let parsed_char = parse_character(input_str, ';');
     match parsed_char {
         Ok((remaining_str, _)) => Ok((remaining_str, Token::Semicolon)),
@@ -99,7 +110,7 @@ fn parse_semicolon(input_str: &str) -> ParseResult<Token> {
 ///
 /// On successful parsing, return a tuple of remaining input string and the parsed open brace.
 /// On failure, returns a non-matching pattern error.
-fn parse_open_brace(input_str: &str) -> ParseResult<Token> {
+fn parse_open_brace(input_str: &str) -> LexerParseResult<Token> {
     let parsed_char = parse_character(input_str, '{');
     match parsed_char {
         Ok((remaining_str, _)) => Ok((remaining_str, Token::OpenBrace)),
@@ -117,7 +128,7 @@ fn parse_open_brace(input_str: &str) -> ParseResult<Token> {
 ///
 /// On successful parsing, return a tuple of remaining input string and the parsed closed brace.
 /// On failure, returns a non-matching pattern error.
-fn parse_close_brace(input_str: &str) -> ParseResult<Token> {
+fn parse_close_brace(input_str: &str) -> LexerParseResult<Token> {
     let parsed_char = parse_character(input_str, '}');
     match parsed_char {
         Ok((remaining_str, _)) => Ok((remaining_str, Token::CloseBrace)),
@@ -135,7 +146,7 @@ fn parse_close_brace(input_str: &str) -> ParseResult<Token> {
 ///
 /// On successful parsing, return a tuple of remaining input string and the parsed open parenthesis.
 /// On failure, returns a non-matching pattern error.
-fn parse_open_paren(input_str: &str) -> ParseResult<Token> {
+fn parse_open_paren(input_str: &str) -> LexerParseResult<Token> {
     let parsed_char = parse_character(input_str, '(');
     match parsed_char {
         Ok((remaining_str, _)) => Ok((remaining_str, Token::OpenParen)),
@@ -153,7 +164,7 @@ fn parse_open_paren(input_str: &str) -> ParseResult<Token> {
 ///
 /// On successful parsing, return a tuple of remaining input string and the parsed closed parenthesis.
 /// On failure, returns a non-matching pattern error.
-fn parse_close_paren(input_str: &str) -> ParseResult<Token> {
+fn parse_close_paren(input_str: &str) -> LexerParseResult<Token> {
     let parsed_char = parse_character(input_str, ')');
     match parsed_char {
         Ok((remaining_str, _)) => Ok((remaining_str, Token::CloseParen)),
@@ -171,7 +182,7 @@ fn parse_close_paren(input_str: &str) -> ParseResult<Token> {
 ///
 /// On successful parsing, return a tuple of remaining input string and the parsed identifier or keyword.
 /// On failure, returns a non-matching pattern error.
-fn parse_identifier_or_keyword(input_str: &str) -> ParseResult<Token> {
+fn parse_identifier_or_keyword(input_str: &str) -> LexerParseResult<Token> {
     static PATTERN: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[a-zA-Z_]\w*\b").unwrap());
     match PATTERN.captures(input_str) {
         Some(matched) => {
@@ -201,7 +212,7 @@ fn parse_identifier_or_keyword(input_str: &str) -> ParseResult<Token> {
 ///
 /// On successful parsing, return a tuple of remaining input string and the parsed constant integer.
 /// On failure, returns a non-matching pattern error.
-fn parse_constant(input_str: &str) -> ParseResult<Token> {
+fn parse_constant(input_str: &str) -> LexerParseResult<Token> {
     static PATTERN: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[0-9]+\b").unwrap());
     match PATTERN.captures(input_str) {
         Some(matched) => {
@@ -233,7 +244,7 @@ fn parse_constant(input_str: &str) -> ParseResult<Token> {
 ///
 /// On successful parsing, return a tuple of remaining input string and the parsed character.
 /// On failure, returns an unexpected character error.
-fn parse_character(input_str: &str, target_char: char) -> ParseResult<char> {
+fn parse_character(input_str: &str, target_char: char) -> LexerParseResult<char> {
     if input_str.is_empty() {
         return Err(LexerError::EmptyInputString);
     }
