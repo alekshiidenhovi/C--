@@ -1,5 +1,7 @@
-use cmm::compiler::compile;
+use cmm::compiler::run_cmm_compiler;
+
+use std::path::Path;
 
 fn main() {
-    compile("int main() {}");
+    let _ = run_cmm_compiler(Path::new("main.i"), Path::new("main.s"));
 }

@@ -15,27 +15,17 @@ fn is_valid_path_extension(path: &Path, extension: &str) -> bool {
     path.extension().map_or(false, |ext| ext == extension)
 }
 
-/// Validates preprocessor paths and their respective files.
-///
-/// # Arguments
-///
-/// * `input_path`: The path to the input C source file. Must have a `.c` extension.
-/// * `output_path`: An optional path for the preprocessed output file.
-///
-/// # Returns
-///
-/// Returns `Ok(())` on successful preprocessing, or an `anyhow::Error` if:
-/// - The input path does not have a `.c` extension.
-/// - The input path does not exist or is not a file.
-/// - The output path (if provided) does not have a `.i` extension.
-/// - The output file already exists when no explicit `output_path` is given.
-pub fn validate_preprocessor_paths(
+/// Internal helper for path validation across preprocessor, compiler, and linker stages.
+fn validate_paths_internal(
     input_path: &Path,
+    input_ext: &str,
     output_path: Option<&Path>,
+    output_ext: Option<&str>,
 ) -> anyhow::Result<(PathBuf, PathBuf)> {
-    if !is_valid_path_extension(input_path, "c") {
+    if !is_valid_path_extension(input_path, input_ext) {
         return Err(anyhow!(
-            "Input path must have a '.c' extension: {}",
+            "Input path must have a '.{}' extension: {}",
+            input_ext,
             input_path.display()
         ));
     }
@@ -49,25 +39,107 @@ pub fn validate_preprocessor_paths(
 
     let final_output_path: PathBuf = match output_path {
         Some(path) => {
-            if !is_valid_path_extension(path, "i") {
-                return Err(anyhow!("Output path must end with '.i' extension"));
+            if let Some(ext) = output_ext {
+                if !is_valid_path_extension(path, ext) {
+                    return Err(anyhow!("Output path must end with '.{}' extension", ext));
+                }
+            } else if path.extension().is_some() {
+                return Err(anyhow!(
+                    "Output path for linker should typically not have a file extension"
+                ));
             }
             path.to_path_buf()
         }
         None => {
-            let path_buf = input_path.with_extension("i");
-
-            if path_buf.exists() {
-                return Err(anyhow!(
-                    "Output file already exists: {}",
-                    path_buf.display()
-                ));
+            if let Some(ext) = output_ext {
+                let path_buf = input_path.with_extension(ext);
+                if path_buf.exists() {
+                    return Err(anyhow!(
+                        "Output file already exists: {}",
+                        path_buf.display()
+                    ));
+                }
+                path_buf
+            } else {
+                let file_stem = input_path
+                    .file_stem()
+                    .ok_or_else(|| anyhow!("Input path has no file stem"))?;
+                let path_buf = PathBuf::from(file_stem);
+                if path_buf.exists() {
+                    return Err(anyhow!(
+                        "Output file already exists: {}",
+                        path_buf.display()
+                    ));
+                }
+                path_buf
             }
-            path_buf
         }
     };
 
-    return Ok(((*input_path).to_path_buf(), final_output_path));
+    Ok(((*input_path).to_path_buf(), final_output_path))
+}
+
+/// Validates preprocessor paths and their respective files.
+///
+/// **Input Requirement:** Must have a `.c` extension.
+/// **Output Requirement:** Must have a `.i` extension.
+///
+/// # Arguments
+///
+/// * `input_path`: The path to the input C source file.
+/// * `output_path`: An optional path for the preprocessed output file.
+///
+/// # Returns
+///
+/// Returns `Ok((PathBuf, PathBuf))` containing the validated input and output paths on success,
+/// or an `anyhow::Error` if validation fails.
+pub fn validate_preprocessor_paths(
+    input_path: &Path,
+    output_path: Option<&Path>,
+) -> anyhow::Result<(PathBuf, PathBuf)> {
+    validate_paths_internal(input_path, "c", output_path, Some("i"))
+}
+
+/// Validates compiler paths and their respective files.
+///
+/// **Input Requirement:** Must have an `.i` extension.
+/// **Output Requirement:** Must have an `.s` extension.
+///
+/// # Arguments
+///
+/// * `input_path`: The path to the input preprocessed file.
+/// * `output_path`: An optional path for the compiled assembly output file.
+///
+/// # Returns
+///
+/// Returns `Ok((PathBuf, PathBuf))` containing the validated input and output paths on success,
+/// or an `anyhow::Error` if validation fails.
+pub fn validate_compiler_paths(
+    input_path: &Path,
+    output_path: Option<&Path>,
+) -> anyhow::Result<(PathBuf, PathBuf)> {
+    validate_paths_internal(input_path, "i", output_path, Some("s"))
+}
+
+/// Validates linker paths and their respective files.
+///
+/// **Input Requirement:** Must have an `.s` extension.
+/// **Output Requirement:** No file extension (the final executable).
+///
+/// # Arguments
+///
+/// * `input_path`: The path to the input compiled assembly file.
+/// * `output_path`: An optional path for the final executable file.
+///
+/// # Returns
+///
+/// Returns `Ok((PathBuf, PathBuf))` containing the validated input and output paths on success,
+/// or an `anyhow::Error` if validation fails.
+pub fn validate_linker_paths(
+    input_path: &Path,
+    output_path: Option<&Path>,
+) -> anyhow::Result<(PathBuf, PathBuf)> {
+    validate_paths_internal(input_path, "s", output_path, None)
 }
 
 #[cfg(test)]

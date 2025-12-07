@@ -1,4 +1,5 @@
-use crate::common::validation::validate_preprocessor_paths;
+use crate::common::validation;
+use crate::compiler::run_cmm_compiler;
 use anyhow::Context;
 use std::path::Path;
 use std::process::Command;
@@ -10,27 +11,33 @@ use std::process::Command;
 ///
 /// # Arguments
 ///
-/// * `input_path`: The path to the input C source file. Must have a `.c` extension.
-/// * `output_path`: The path to the output preprocessed C source file. Must have an `.i` extension.
+/// * `source_file_path`: The path to the input C source file. Must have a `.c` extension.
+/// * `preprocessed_file_path`: The path to the output preprocessed C source file. Must have an `.i` extension.
 ///
 /// # Returns
 ///
 /// Returns `Ok(())` on successful preprocessing, or an `anyhow::Error` if:
 /// - GCC preprocessing fails or is not found.
-pub fn run_gcc_preprocessor(input_path: &Path, output_path: &Path) -> anyhow::Result<()> {
+pub fn run_gcc_preprocessor(
+    source_file_path: &Path,
+    preprocessed_file_path: &Path,
+) -> anyhow::Result<()> {
     println!("Invoking GCC Preprocessor...");
 
     let status = Command::new("gcc")
         .arg("-E")
         .arg("-P")
-        .arg(input_path)
+        .arg(source_file_path)
         .arg("-o")
-        .arg(output_path)
+        .arg(preprocessed_file_path)
         .status()
         .context("Failed to execute GCC preprocessing. Is it installed and in your PATH?")?;
 
     if status.success() {
-        println!("Preprocessed file created at: {}", output_path.display());
+        println!(
+            "Preprocessed file created at: {}",
+            preprocessed_file_path.display()
+        );
         Ok(())
     } else {
         Err(anyhow::anyhow!(
@@ -40,7 +47,54 @@ pub fn run_gcc_preprocessor(input_path: &Path, output_path: &Path) -> anyhow::Re
     }
 }
 
+/// Run the GCC linker to create an executable from an assembly file.
+///
+/// This function invokes `gcc -o` to perform linking, and forming the final executable.
+///
+/// # Arguments
+///
+/// * `assembly_file_path`: A reference to the `Path` of the assembly file to link.
+/// * `executable_path`: A reference to the `Path` where the executable should be created.
+///
+/// # Returns
+///
+/// Returns `Ok(())` if the linking process is successful.
+/// Returns an `anyhow::Result` with an error if the GCC linker fails to execute or fails during the linking process.
+pub fn run_gcc_linker(assembly_file_path: &Path, executable_path: &Path) -> anyhow::Result<()> {
+    println!("Invoking GCC Linker...");
+
+    let status = Command::new("gcc")
+        .arg(assembly_file_path)
+        .arg("-o")
+        .arg(executable_path)
+        .status()
+        .context("Failed to execute GCC Linker. Is it installed and in your PATH?")?;
+
+    if status.success() {
+        println!("Linker file created at: {}", executable_path.display());
+        Ok(())
+    } else {
+        Err(anyhow::anyhow!(
+            "GCC Linker failed with exit code: {:?}",
+            status.code()
+        ))
+    }
+}
+
 pub fn run_compiler_driver(input_path: &Path) -> anyhow::Result<()> {
-    let (input_path, output_path) = validate_preprocessor_paths(input_path, None)?;
-    run_gcc_preprocessor(&input_path, &output_path)
+    let (preprocessor_input_path, preprocessor_output_path) =
+        validation::validate_preprocessor_paths(input_path, None)?;
+    let _ = run_gcc_preprocessor(&preprocessor_input_path, &preprocessor_output_path);
+
+    let (compiler_input_path, compiler_output_path) =
+        validation::validate_compiler_paths(&preprocessor_output_path, None)?;
+    let _ = run_cmm_compiler(&compiler_input_path, &compiler_output_path);
+    std::fs::remove_file(&preprocessor_output_path)?;
+
+    let (linker_input_path, linker_output_path) =
+        validation::validate_linker_paths(&compiler_output_path, None)?;
+    let _ = run_gcc_linker(&linker_input_path, &linker_output_path);
+    std::fs::remove_file(&compiler_output_path)?;
+
+    Ok(())
 }
