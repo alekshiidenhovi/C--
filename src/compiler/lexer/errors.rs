@@ -25,7 +25,16 @@ pub enum LexerError<'a> {
     NonmatchingPattern { found: &'a str },
 
     /// Represents an invalid constant error during lexing.
+    ///
+    /// This error occurs when the lexer cannot parse a constant integer from the input string.
+    ///
+    /// # Arguments
+    ///
+    /// * `found`: The integer string that could not be parsed.
     InvalidConstant { found: String },
+
+    /// Represents an error where no parser was able to match the input string.
+    NoParserMatched,
 }
 
 impl fmt::Display for LexerError<'_> {
@@ -52,6 +61,7 @@ impl fmt::Display for LexerError<'_> {
                     found
                 )
             }
+            LexerError::NoParserMatched => write!(f, "Lexer error: No parser matched"),
         }
     }
 }
