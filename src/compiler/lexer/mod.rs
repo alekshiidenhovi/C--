@@ -9,7 +9,8 @@ use tokens::Token;
 type ParseResult<T> = Result<(String, T), LexerError>;
 type Parser = fn(&str) -> ParseResult<Token>;
 
-pub fn tokenize(mut input_string: String) -> Vec<Token> {
+pub fn tokenize(input_str: &str) -> Vec<Token> {
+    let mut string_stream = input_str.to_string();
     let mut token_vec = Vec::new();
     let parsers: Vec<Parser> = vec![
         parse_identifier_or_keyword,
@@ -21,14 +22,14 @@ pub fn tokenize(mut input_string: String) -> Vec<Token> {
         parse_close_paren,
     ];
     loop {
-        input_string = input_string.trim_start().to_string();
-        if input_string.is_empty() {
+        string_stream = string_stream.trim_start().to_string();
+        if string_stream.is_empty() {
             break;
         }
         for parser in parsers.iter() {
-            if let Ok((remaining_str, token)) = parser(&input_string) {
+            if let Ok((remaining_str, token)) = parser(&string_stream) {
                 token_vec.push(token);
-                input_string = remaining_str;
+                string_stream = remaining_str;
                 continue;
             }
         }
@@ -325,7 +326,7 @@ mod tests {
         let input = "int main(void) {
 return 2;
         }";
-        let tokens = tokenize(input.to_string());
+        let tokens = tokenize(input);
         assert_eq!(
             tokens,
             vec![
