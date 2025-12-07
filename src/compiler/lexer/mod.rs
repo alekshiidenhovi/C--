@@ -9,6 +9,40 @@ use tokens::Token;
 type ParseResult<T> = Result<(String, T), LexerError>;
 type Parser = fn(&str) -> ParseResult<Token>;
 
+/// Tokenizes an input string into a vector of `Token`s.
+///
+/// This function iterates through the input string, attempting to parse it
+/// using a predefined set of parsers. It trims whitespace before each parsing
+/// attempt and continues until the string is empty.
+///
+/// # Arguments
+///
+/// * `input_str`: A string slice that represents the code to be tokenized.
+///
+/// # Returns
+///
+/// A `Vec<Token>` containing the recognized tokens from the input string.
+///
+/// # Examples
+///
+/// ```
+/// # use cmm::compiler::lexer::tokenize;
+/// # use cmm::compiler::lexer::tokens::Token;
+///
+/// let tokens = tokenize("int main(void) { return 1; }");
+/// assert_eq!(tokens, vec![
+///     Token::IntKeyword,
+///     Token::Identifier("main".to_string()),
+///     Token::OpenParen,
+///     Token::VoidKeyword,
+///     Token::CloseParen,
+///     Token::OpenBrace,
+///     Token::ReturnKeyword,
+///     Token::Constant(1),
+///     Token::Semicolon,
+///     Token::CloseBrace,
+/// ]);
+/// ```
 pub fn tokenize(input_str: &str) -> Vec<Token> {
     let mut string_stream = input_str.to_string();
     let mut token_vec = Vec::new();
@@ -319,28 +353,5 @@ mod tests {
     #[test]
     fn parse_invalid_identifier() {
         assert!(parse_identifier_or_keyword("1_number_first_not_allowed").is_err());
-    }
-
-    #[test]
-    fn parse_simple_program() {
-        let input = "int main(void) {
-return 2;
-        }";
-        let tokens = tokenize(input);
-        assert_eq!(
-            tokens,
-            vec![
-                Token::IntKeyword,
-                Token::Identifier("main".to_string()),
-                Token::OpenParen,
-                Token::VoidKeyword,
-                Token::CloseParen,
-                Token::OpenBrace,
-                Token::ReturnKeyword,
-                Token::Constant(2),
-                Token::Semicolon,
-                Token::CloseBrace,
-            ]
-        );
     }
 }
