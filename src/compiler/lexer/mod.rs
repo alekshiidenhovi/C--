@@ -28,6 +28,34 @@ pub fn tokenize(mut input_string: String) -> Vec<Token> {
     token_vec
 }
 
+/// Attempts to parse an identifier or keyword from the input string.
+///
+/// # Arguments
+///
+/// * `input_str`: The input string to parse.
+///
+/// # Returns
+///
+/// On successful parsing, return a tuple of remaining input string and the parsed identifier or keyword.
+/// On failure, returns a non-matching pattern error.
+fn parse_identifier_or_keyword<'a>(input_str: &'a str) -> ParseResult<'a, Token> {
+    static PATTERN: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[a-zA-Z_]\w*\b").unwrap());
+    match PATTERN.captures(input_str) {
+        Some(matched) => {
+            let matched_str = &matched[0];
+            let remaining_str = input_str.strip_prefix(matched_str).unwrap().to_string();
+            let token = match matched_str {
+                "int" => Token::IntKeyword,
+                "void" => Token::VoidKeyword,
+                "return" => Token::ReturnKeyword,
+                _ => Token::Identifier(matched_str.to_string()),
+            };
+            Ok((remaining_str, token))
+        }
+        None => Err(LexerError::NonmatchingPattern { found: input_str }),
+    }
+}
+
 /// Attempts to parse a keyword from the input string.
 ///
 /// # Arguments
@@ -151,5 +179,45 @@ mod tests {
                 expected: 'b'
             }
         );
+    }
+
+    #[test]
+    fn parse_valid_return_keyword() {
+        let input = "return 2;";
+        let result = parse_identifier_or_keyword(input);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), (String::from(" 2;"), Token::ReturnKeyword));
+    }
+
+    #[test]
+    fn parse_valid_void_keyword() {
+        let input = "void";
+        let result = parse_identifier_or_keyword(input);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), (String::from(""), Token::VoidKeyword));
+    }
+
+    #[test]
+    fn parse_valid_int_keyword() {
+        let input = "int";
+        let result = parse_identifier_or_keyword(input);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), (String::from(""), Token::IntKeyword));
+    }
+
+    #[test]
+    fn parse_valid_identifier() {
+        let input = "main";
+        let result = parse_identifier_or_keyword(input);
+        assert!(result.is_ok());
+        assert_eq!(
+            result.unwrap(),
+            (String::from(""), Token::Identifier(input.to_string()))
+        );
+    }
+
+    #[test]
+    fn parse_invalid_identifier() {
+        assert!(parse_identifier_or_keyword("1_number_first_not_allowed").is_err());
     }
 }
