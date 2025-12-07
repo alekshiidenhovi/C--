@@ -6,26 +6,124 @@ use regex::Regex;
 use std::sync::LazyLock;
 use tokens::Token;
 
-type ParseResult<'a, T> = Result<(String, T), LexerError<'a>>;
-
-fn split_first_char(s: &str) -> Option<(char, &str)> {
-    let mut chars = s.chars();
-    if let Some(first_char) = chars.next() {
-        let rest_of_str = chars.as_str();
-        return Some((first_char, rest_of_str));
-    }
-    None
-}
+type ParseResult<T> = Result<(String, T), LexerError>;
+type Parser = fn(&str) -> ParseResult<Token>;
 
 pub fn tokenize(mut input_string: String) -> Vec<Token> {
     let mut token_vec = Vec::new();
+    let parsers: Vec<Parser> = vec![
+        parse_identifier_or_keyword,
+        parse_constant,
+        parse_semicolon,
+        parse_open_brace,
+        parse_close_brace,
+        parse_open_paren,
+        parse_close_paren,
+    ];
     loop {
         input_string = input_string.trim_start().to_string();
         if input_string.is_empty() {
             break;
         }
+        for parser in parsers.iter() {
+            if let Ok((remaining_str, token)) = parser(&input_string) {
+                token_vec.push(token);
+                input_string = remaining_str;
+                continue;
+            }
+        }
     }
     token_vec
+}
+
+/// Attempts to parse a semicolon from the input string.
+///
+/// # Arguments
+///
+/// * `input_str`: The input string to parse.
+///
+/// # Returns
+///
+/// On successful parsing, return a tuple of remaining input string and the parsed semicolon.
+/// On failure, returns a non-matching pattern error.
+fn parse_semicolon(input_str: &str) -> ParseResult<Token> {
+    let parsed_char = parse_character(input_str, ';');
+    match parsed_char {
+        Ok((remaining_str, _)) => Ok((remaining_str, Token::Semicolon)),
+        Err(err) => Err(err),
+    }
+}
+
+/// Attempts to parse an open brace from the input string.
+///
+/// # Arguments
+///
+/// * `input_str`: The input string to parse.
+///
+/// # Returns
+///
+/// On successful parsing, return a tuple of remaining input string and the parsed open brace.
+/// On failure, returns a non-matching pattern error.
+fn parse_open_brace(input_str: &str) -> ParseResult<Token> {
+    let parsed_char = parse_character(input_str, '{');
+    match parsed_char {
+        Ok((remaining_str, _)) => Ok((remaining_str, Token::OpenBrace)),
+        Err(err) => Err(err),
+    }
+}
+
+/// Attempts to parse a closed brace from the input string.
+///
+/// # Arguments
+///
+/// * `input_str`: The input string to parse.
+///
+/// # Returns
+///
+/// On successful parsing, return a tuple of remaining input string and the parsed closed brace.
+/// On failure, returns a non-matching pattern error.
+fn parse_close_brace(input_str: &str) -> ParseResult<Token> {
+    let parsed_char = parse_character(input_str, '}');
+    match parsed_char {
+        Ok((remaining_str, _)) => Ok((remaining_str, Token::CloseBrace)),
+        Err(err) => Err(err),
+    }
+}
+
+/// Attempts to parse an open parenthesis from the input string.
+///
+/// # Arguments
+///
+/// * `input_str`: The input string to parse.
+///
+/// # Returns
+///
+/// On successful parsing, return a tuple of remaining input string and the parsed open parenthesis.
+/// On failure, returns a non-matching pattern error.
+fn parse_open_paren(input_str: &str) -> ParseResult<Token> {
+    let parsed_char = parse_character(input_str, '(');
+    match parsed_char {
+        Ok((remaining_str, _)) => Ok((remaining_str, Token::OpenParen)),
+        Err(err) => Err(err),
+    }
+}
+
+/// Attempts to parse a closed parenthesis from the input string.
+///
+/// # Arguments
+///
+/// * `input_str`: The input string to parse.
+///
+/// # Returns
+///
+/// On successful parsing, return a tuple of remaining input string and the parsed closed parenthesis.
+/// On failure, returns a non-matching pattern error.
+fn parse_close_paren(input_str: &str) -> ParseResult<Token> {
+    let parsed_char = parse_character(input_str, ')');
+    match parsed_char {
+        Ok((remaining_str, _)) => Ok((remaining_str, Token::CloseParen)),
+        Err(err) => Err(err),
+    }
 }
 
 /// Attempts to parse an identifier or keyword from the input string.
@@ -38,7 +136,7 @@ pub fn tokenize(mut input_string: String) -> Vec<Token> {
 ///
 /// On successful parsing, return a tuple of remaining input string and the parsed identifier or keyword.
 /// On failure, returns a non-matching pattern error.
-fn parse_identifier_or_keyword<'a>(input_str: &'a str) -> ParseResult<'a, Token> {
+fn parse_identifier_or_keyword(input_str: &str) -> ParseResult<Token> {
     static PATTERN: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[a-zA-Z_]\w*\b").unwrap());
     match PATTERN.captures(input_str) {
         Some(matched) => {
@@ -52,24 +150,11 @@ fn parse_identifier_or_keyword<'a>(input_str: &'a str) -> ParseResult<'a, Token>
             };
             Ok((remaining_str, token))
         }
-        None => Err(LexerError::NonmatchingPattern { found: input_str }),
+        None => Err(LexerError::NonmatchingPattern {
+            found: input_str.to_string(),
+        }),
     }
 }
-
-/// Attempts to parse a keyword from the input string.
-///
-/// # Arguments
-///
-/// * `input_str`: The input string to parse.
-///
-/// # Returns
-///
-/// On successful parsing, return a tuple of remaining input string and the parsed keyword.
-/// On failure, returns a non-matching pattern error.
-//fn parse_keyword<'a>(input_str: &'a str) -> ParseResult<'a, Token> {
-//     if input_str == "int" {}
-//     Err(LexerError::NonmatchingPattern { found: input_str })
-// }
 
 /// Attempts to parse a constant integer from the input string.
 ///
@@ -81,9 +166,7 @@ fn parse_identifier_or_keyword<'a>(input_str: &'a str) -> ParseResult<'a, Token>
 ///
 /// On successful parsing, return a tuple of remaining input string and the parsed constant integer.
 /// On failure, returns a non-matching pattern error.
-///
-
-fn parse_constant<'a>(input_str: &'a str) -> ParseResult<'a, Token> {
+fn parse_constant(input_str: &str) -> ParseResult<Token> {
     static PATTERN: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[0-9]+\b").unwrap());
     match PATTERN.captures(input_str) {
         Some(matched) => {
@@ -98,7 +181,9 @@ fn parse_constant<'a>(input_str: &'a str) -> ParseResult<'a, Token> {
             let token = Token::Constant(parsed_int);
             Ok((remaining_str, token))
         }
-        None => Err(LexerError::NonmatchingPattern { found: input_str }),
+        None => Err(LexerError::NonmatchingPattern {
+            found: input_str.to_string(),
+        }),
     }
 }
 
@@ -113,7 +198,10 @@ fn parse_constant<'a>(input_str: &'a str) -> ParseResult<'a, Token> {
 ///
 /// On successful parsing, return a tuple of remaining input string and the parsed character.
 /// On failure, returns an unexpected character error.
-fn parse_character<'a>(input_str: &'a str, target_char: char) -> ParseResult<'a, char> {
+fn parse_character(input_str: &str, target_char: char) -> ParseResult<char> {
+    if input_str.is_empty() {
+        return Err(LexerError::EmptyInputString);
+    }
     let (next_char, rest) = split_first_char(&input_str).unwrap();
     if next_char == target_char {
         Ok((rest.to_string(), next_char))
@@ -123,6 +211,15 @@ fn parse_character<'a>(input_str: &'a str, target_char: char) -> ParseResult<'a,
             expected: target_char,
         })
     }
+}
+
+fn split_first_char(s: &str) -> Option<(char, &str)> {
+    let mut chars = s.chars();
+    if let Some(first_char) = chars.next() {
+        let rest_of_str = chars.as_str();
+        return Some((first_char, rest_of_str));
+    }
+    None
 }
 
 #[cfg(test)]
@@ -155,7 +252,9 @@ mod tests {
         assert!(result.is_err());
         assert_eq!(
             result.unwrap_err(),
-            LexerError::NonmatchingPattern { found: "123abc" }
+            LexerError::NonmatchingPattern {
+                found: "123abc".to_string()
+            }
         );
     }
 
@@ -219,5 +318,28 @@ mod tests {
     #[test]
     fn parse_invalid_identifier() {
         assert!(parse_identifier_or_keyword("1_number_first_not_allowed").is_err());
+    }
+
+    #[test]
+    fn parse_simple_program() {
+        let input = "int main(void) {
+return 2;
+        }";
+        let tokens = tokenize(input.to_string());
+        assert_eq!(
+            tokens,
+            vec![
+                Token::IntKeyword,
+                Token::Identifier("main".to_string()),
+                Token::OpenParen,
+                Token::VoidKeyword,
+                Token::CloseParen,
+                Token::OpenBrace,
+                Token::ReturnKeyword,
+                Token::Constant(2),
+                Token::Semicolon,
+                Token::CloseBrace,
+            ]
+        );
     }
 }

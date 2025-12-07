@@ -3,7 +3,7 @@ use std::fmt;
 
 /// Represents errors that can occur during lexing.
 #[derive(Debug, PartialEq)]
-pub enum LexerError<'a> {
+pub enum LexerError {
     /// Represents an unexpected character encountered during lexing.
     ///
     /// This error occurs when the lexer finds a character that is not part of the expected grammar
@@ -22,7 +22,7 @@ pub enum LexerError<'a> {
     /// # Arguments
     ///
     /// * `found`: The string that did not match the pattern.
-    NonmatchingPattern { found: &'a str },
+    NonmatchingPattern { found: String },
 
     /// Represents an invalid constant error during lexing.
     ///
@@ -35,9 +35,12 @@ pub enum LexerError<'a> {
 
     /// Represents an error where no parser was able to match the input string.
     NoParserMatched,
+
+    /// Represents an error where the input string is empty.
+    EmptyInputString,
 }
 
-impl fmt::Display for LexerError<'_> {
+impl fmt::Display for LexerError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             LexerError::UnexpectedCharacter { found, expected } => {
@@ -62,8 +65,9 @@ impl fmt::Display for LexerError<'_> {
                 )
             }
             LexerError::NoParserMatched => write!(f, "Lexer error: No parser matched"),
+            LexerError::EmptyInputString => write!(f, "Lexer error: Input string is empty"),
         }
     }
 }
 
-impl Error for LexerError<'_> {}
+impl Error for LexerError {}
