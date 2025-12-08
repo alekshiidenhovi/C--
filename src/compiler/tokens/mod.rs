@@ -28,8 +28,8 @@ impl Token {
     /// # Examples
     ///
     /// ```
-    /// # use cmm::tokens::Token;
-    /// # use cmm::tokens::TokenType;
+    /// # use cmm::compiler::tokens::Token;
+    /// # use cmm::compiler::tokens::TokenType;
     ///
     /// let identifier_token = Token::Identifier(String::from("variable"));
     /// assert_eq!(identifier_token.kind(), TokenType::Identifier);

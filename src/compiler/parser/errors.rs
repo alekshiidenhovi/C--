@@ -20,7 +20,7 @@ pub enum ParserError {
     },
 
     /// Raised when the parser encounters trailing tokens after the program has been parsed.
-    UnExpectedTrailingTokens { found: Vec<Token> },
+    UnexpectedTrailingTokens { found: Vec<Token> },
 }
 
 impl fmt::Display for ParserError {
@@ -34,7 +34,7 @@ impl fmt::Display for ParserError {
                     actual, expected
                 )
             }
-            ParserError::UnExpectedTrailingTokens { found } => {
+            ParserError::UnexpectedTrailingTokens { found } => {
                 write!(
                     f,
                     "Parser error: Unexpected trailing tokens found {:?}",

@@ -1,5 +1,5 @@
 pub mod ast;
-mod errors;
+pub mod errors;
 
 use crate::compiler::tokens::{Token, TokenType};
 use ast::{Ast, Expression, FunctionDefinition, Statement};
@@ -44,6 +44,9 @@ impl Parser {
     ///
     /// ```
     /// # use cmm::compiler::tokens::Token;
+    /// # use cmm::compiler::parser::ast::{Ast, FunctionDefinition, Statement, Expression};
+    /// # use cmm::compiler::parser::Parser;
+    /// # use cmm::compiler::parser::errors::ParserError;
     /// let tokens = vec![
     ///     Token::IntKeyword,
     ///     Token::Identifier("main".to_string()),
@@ -57,13 +60,14 @@ impl Parser {
     ///     Token::CloseBrace,
     /// ];
     /// let mut parser = Parser::new(tokens);
-    /// let ast = parser.parse_ast().unwrap();
+    /// let ast = parser.parse_ast()?;
     /// assert_eq!(ast, Ast::Program(FunctionDefinition::Function("main".to_string(), Statement::Return(Expression::IntegerConstant(1)))));
+    /// # Ok::<(), ParserError>(())
     /// ```
     pub fn parse_ast(&mut self) -> Result<Ast, ParserError> {
         let function = self.parse_function()?;
-        if !self.tokens.is_empty() {
-            return Err(ParserError::UnExpectedTrailingTokens {
+        if self.position < self.tokens.len() {
+            return Err(ParserError::UnexpectedTrailingTokens {
                 found: self.tokens.clone(),
             });
         }
@@ -173,5 +177,27 @@ impl Parser {
         let token = self.tokens[self.position].clone();
         self.position += 1;
         Ok(token)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_consume_single_token_success() {
+        let tokens = vec![Token::IntKeyword];
+        let mut parser = Parser::new(tokens);
+        let token = parser.consume_token().unwrap();
+        assert_eq!(token, Token::IntKeyword);
+    }
+
+    #[test]
+    fn test_consume_single_token_failure_no_tokens() {
+        let tokens = vec![];
+        let mut parser = Parser::new(tokens);
+        let result = parser.consume_token();
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), ParserError::UnexpectedEndOfInput);
     }
 }
