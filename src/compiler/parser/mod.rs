@@ -68,7 +68,7 @@ impl Parser {
         let function = self.parse_function()?;
         if self.position < self.tokens.len() {
             return Err(ParserError::UnexpectedTrailingTokens {
-                found: self.tokens.clone(),
+                found: self.tokens[self.position..].to_vec(),
             });
         }
         Ok(Ast::Program(function))
@@ -393,6 +393,110 @@ mod tests {
             ParserError::UnexpectedToken {
                 expected: TokenType::CloseBrace,
                 actual: TokenType::Semicolon
+            }
+        );
+    }
+
+    #[test]
+    fn test_parse_ast_success() {
+        let tokens = vec![
+            Token::IntKeyword,
+            Token::Identifier("main".to_string()),
+            Token::OpenParen,
+            Token::VoidKeyword,
+            Token::CloseParen,
+            Token::OpenBrace,
+            Token::ReturnKeyword,
+            Token::Constant(1),
+            Token::Semicolon,
+            Token::CloseBrace,
+        ];
+        let mut parser = Parser::new(tokens);
+        let result = parser.parse_ast();
+        assert!(result.is_ok());
+        assert_eq!(
+            result.unwrap(),
+            Ast::Program(FunctionDefinition::Function(
+                "main".to_string(),
+                Statement::Return(Expression::IntegerConstant(1))
+            ))
+        );
+    }
+
+    #[test]
+    fn test_parse_ast_failure_no_tokens() {
+        let tokens = vec![];
+        let mut parser = Parser::new(tokens);
+        let result = parser.parse_ast();
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), ParserError::UnexpectedEndOfInput);
+    }
+
+    #[test]
+    fn test_parse_ast_failure_too_short_sequence() {
+        let tokens = vec![
+            Token::IntKeyword,
+            Token::Identifier("main".to_string()),
+            Token::OpenParen,
+            Token::VoidKeyword,
+            Token::CloseParen,
+        ];
+        let mut parser = Parser::new(tokens);
+        let result = parser.parse_ast();
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), ParserError::UnexpectedEndOfInput);
+    }
+
+    #[test]
+    fn test_parse_ast_failure_unexpected_sequence() {
+        let tokens = vec![
+            Token::IntKeyword,
+            Token::Identifier("main".to_string()),
+            Token::ReturnKeyword,
+            Token::VoidKeyword,
+            Token::CloseParen,
+            Token::OpenBrace,
+            Token::ReturnKeyword,
+            Token::Constant(1),
+            Token::Semicolon,
+            Token::CloseBrace,
+            Token::Semicolon,
+        ];
+        let mut parser = Parser::new(tokens);
+        let result = parser.parse_ast();
+        assert!(result.is_err());
+        assert_eq!(
+            result.unwrap_err(),
+            ParserError::UnexpectedToken {
+                expected: TokenType::OpenParen,
+                actual: TokenType::ReturnKeyword
+            }
+        );
+    }
+
+    #[test]
+    fn test_parse_ast_failure_unexpected_trailing_tokens() {
+        let tokens = vec![
+            Token::IntKeyword,
+            Token::Identifier("main".to_string()),
+            Token::OpenParen,
+            Token::VoidKeyword,
+            Token::CloseParen,
+            Token::OpenBrace,
+            Token::ReturnKeyword,
+            Token::Constant(1),
+            Token::Semicolon,
+            Token::CloseBrace,
+            Token::Semicolon,
+            Token::Semicolon,
+        ];
+        let mut parser = Parser::new(tokens);
+        let result = parser.parse_ast();
+        assert!(result.is_err());
+        assert_eq!(
+            result.unwrap_err(),
+            ParserError::UnexpectedTrailingTokens {
+                found: vec![Token::Semicolon, Token::Semicolon]
             }
         );
     }
