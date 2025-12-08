@@ -1,5 +1,3 @@
-use crate::common::validation;
-use crate::compiler::run_cmm_compiler;
 use anyhow::Context;
 use std::path::Path;
 use std::process::Command;
@@ -79,22 +77,4 @@ pub fn run_gcc_linker(assembly_file_path: &Path, executable_path: &Path) -> anyh
             status.code()
         ))
     }
-}
-
-pub fn run_compiler_driver(input_path: &Path) -> anyhow::Result<()> {
-    let (preprocessor_input_path, preprocessor_output_path) =
-        validation::validate_preprocessor_paths(input_path, None)?;
-    let _ = run_gcc_preprocessor(&preprocessor_input_path, &preprocessor_output_path);
-
-    let (compiler_input_path, compiler_output_path) =
-        validation::validate_compiler_paths(&preprocessor_output_path, None)?;
-    let _ = run_cmm_compiler(&compiler_input_path, &compiler_output_path);
-    std::fs::remove_file(&preprocessor_output_path)?;
-
-    let (linker_input_path, linker_output_path) =
-        validation::validate_linker_paths(&compiler_output_path, None)?;
-    let _ = run_gcc_linker(&linker_input_path, &linker_output_path);
-    std::fs::remove_file(&compiler_output_path)?;
-
-    Ok(())
 }
