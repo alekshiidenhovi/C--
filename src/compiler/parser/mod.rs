@@ -299,4 +299,40 @@ mod tests {
             }
         );
     }
+
+    #[test]
+    fn test_parse_statement_success() {
+        let tokens = vec![Token::ReturnKeyword, Token::Constant(1), Token::Semicolon];
+        let mut parser = Parser::new(tokens);
+        let result = parser.parse_statement();
+        assert!(result.is_ok());
+        assert_eq!(
+            result.unwrap(),
+            Statement::Return(Expression::IntegerConstant(1))
+        );
+    }
+
+    #[test]
+    fn test_parse_statement_failure_no_tokens() {
+        let tokens = vec![];
+        let mut parser = Parser::new(tokens);
+        let result = parser.parse_statement();
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), ParserError::UnexpectedEndOfInput);
+    }
+
+    #[test]
+    fn test_parse_statement_failure_unexpected_sequence() {
+        let tokens = vec![Token::ReturnKeyword, Token::VoidKeyword, Token::Semicolon];
+        let mut parser = Parser::new(tokens);
+        let result = parser.parse_statement();
+        assert!(result.is_err());
+        assert_eq!(
+            result.unwrap_err(),
+            ParserError::UnexpectedToken {
+                expected: TokenType::Constant,
+                actual: TokenType::VoidKeyword
+            }
+        );
+    }
 }
