@@ -13,15 +13,19 @@ struct CliArgs {
 
     /// Tokenizes the source code and prints the tokens.
     #[clap(long, conflicts_with_all = &["parse", "codegen"], group = "operation")]
-    lex: Option<bool>,
+    lex: bool,
 
     /// Parses the tokens into an AST and prints the structure.
     #[clap(long, conflicts_with_all = &["lex", "codegen"], group = "operation")]
-    parse: Option<bool>,
+    parse: bool,
 
     /// Generates machine code from the source and prints assembly.
     #[clap(long, conflicts_with_all = &["lex", "parse"], group = "operation")]
-    codegen: Option<bool>,
+    codegen: bool,
+
+    /// Stops the compiler after assembly code generation.
+    #[clap(short = 'S', conflicts_with_all = &["lex", "parse", "codegen"], group = "operation")]
+    stop_after_codegen: bool,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -40,9 +44,9 @@ fn main() -> anyhow::Result<()> {
     }
 
     let process_until = match (args.lex, args.parse, args.codegen) {
-        (Some(true), None, None) => Some(Stage::Lex),
-        (None, Some(true), None) => Some(Stage::Parse),
-        (None, None, Some(true)) => Some(Stage::Codegen),
+        (true, false, false) => Some(Stage::Lex),
+        (false, true, false) => Some(Stage::Parse),
+        (false, false, true) => Some(Stage::Codegen),
         _ => None,
     };
 
@@ -52,8 +56,15 @@ fn main() -> anyhow::Result<()> {
 
     let (compiler_input_path, compiler_output_path) =
         validation::validate_compiler_paths(&preprocessor_output_path, None)?;
-    let _ = run_cmm_compiler(&compiler_input_path, &compiler_output_path, process_until);
+    let _ = run_cmm_compiler(&compiler_input_path, &compiler_output_path, &process_until);
+
+    if process_until.is_some() {
+        return Ok(());
+    }
     std::fs::remove_file(&preprocessor_output_path)?;
+    if args.stop_after_codegen {
+        return Ok(());
+    }
 
     let (linker_input_path, linker_output_path) =
         validation::validate_linker_paths(&compiler_output_path, None)?;

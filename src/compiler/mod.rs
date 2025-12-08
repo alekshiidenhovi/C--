@@ -13,7 +13,7 @@ pub enum Stage {
 pub fn run_cmm_compiler(
     input_path: &Path,
     output_path: &Path,
-    process_until: Option<Stage>,
+    process_until: &Option<Stage>,
 ) -> io::Result<()> {
     let input_str = std::fs::read_to_string(input_path)?;
     let _tokens = lexer::tokenize(&input_str);
