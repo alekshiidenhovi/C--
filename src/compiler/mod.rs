@@ -1,4 +1,5 @@
 pub mod lexer;
+pub mod tokens;
 
 use std::io;
 use std::path::Path;
