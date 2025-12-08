@@ -335,4 +335,65 @@ mod tests {
             }
         );
     }
+
+    #[test]
+    fn test_parse_function_success() {
+        let tokens = vec![
+            Token::IntKeyword,
+            Token::Identifier("main".to_string()),
+            Token::OpenParen,
+            Token::VoidKeyword,
+            Token::CloseParen,
+            Token::OpenBrace,
+            Token::ReturnKeyword,
+            Token::Constant(1),
+            Token::Semicolon,
+            Token::CloseBrace,
+        ];
+        let mut parser = Parser::new(tokens);
+        let result = parser.parse_function();
+        assert!(result.is_ok());
+        assert_eq!(
+            result.unwrap(),
+            FunctionDefinition::Function(
+                "main".to_string(),
+                Statement::Return(Expression::IntegerConstant(1))
+            )
+        );
+    }
+
+    #[test]
+    fn test_parse_function_failure_no_tokens() {
+        let tokens = vec![];
+        let mut parser = Parser::new(tokens);
+        let result = parser.parse_function();
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), ParserError::UnexpectedEndOfInput);
+    }
+
+    #[test]
+    fn test_parse_function_failure_unexpected_sequence() {
+        let tokens = vec![
+            Token::IntKeyword,
+            Token::Identifier("main".to_string()),
+            Token::OpenParen,
+            Token::VoidKeyword,
+            Token::CloseParen,
+            Token::OpenBrace,
+            Token::ReturnKeyword,
+            Token::Constant(1),
+            Token::Semicolon,
+            Token::Semicolon,
+        ];
+        let mut parser = Parser::new(tokens);
+        let result = parser.parse_function();
+        assert!(result.is_err());
+        assert_eq!(
+            result.unwrap_err(),
+            ParserError::UnexpectedToken {
+                expected: TokenType::CloseBrace,
+                actual: TokenType::Semicolon
+            }
+        );
+    }
 }
