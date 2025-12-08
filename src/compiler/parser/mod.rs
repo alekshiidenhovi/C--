@@ -266,4 +266,37 @@ mod tests {
             }
         );
     }
+
+    #[test]
+    fn test_parse_identifier_success() {
+        let tokens = vec![Token::Identifier("main".to_string())];
+        let mut parser = Parser::new(tokens);
+        let result = parser.parse_identifier();
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "main".to_string());
+    }
+
+    #[test]
+    fn test_parse_identifier_failure_no_tokens() {
+        let tokens = vec![];
+        let mut parser = Parser::new(tokens);
+        let result = parser.parse_identifier();
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), ParserError::UnexpectedEndOfInput);
+    }
+
+    #[test]
+    fn test_parse_identifier_failure_unexpected_sequence() {
+        let tokens = vec![Token::IntKeyword];
+        let mut parser = Parser::new(tokens);
+        let result = parser.parse_identifier();
+        assert!(result.is_err());
+        assert_eq!(
+            result.unwrap_err(),
+            ParserError::UnexpectedToken {
+                expected: TokenType::Identifier,
+                actual: TokenType::IntKeyword
+            }
+        );
+    }
 }
