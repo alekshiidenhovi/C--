@@ -2,16 +2,14 @@
 #[derive(Debug)]
 pub enum Ast {
     /// A program is composed of a single function.
-    Program(Function),
+    Program(FunctionDefinition),
 }
 
 /// Represents a function definition.
 #[derive(Debug)]
-pub enum Function {
-    /// A function identified by its name.
-    Identifier(String),
-    /// A function body consisting of a single statement.
-    Statement(Statement),
+pub enum FunctionDefinition {
+    /// A function definition consisting of its name and body.
+    Function(String, Statement),
 }
 
 /// Represents a statement within a function.
