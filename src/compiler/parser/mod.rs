@@ -220,7 +220,7 @@ mod tests {
     }
 
     #[test]
-    fn test_expect_token_failure_unexpected_token() {
+    fn test_expect_token_failure_unexpected_sequence() {
         let tokens = vec![Token::IntKeyword];
         let mut parser = Parser::new(tokens);
         let result = parser.expect_token(TokenType::ReturnKeyword);
@@ -229,6 +229,39 @@ mod tests {
             result.unwrap_err(),
             ParserError::UnexpectedToken {
                 expected: TokenType::ReturnKeyword,
+                actual: TokenType::IntKeyword
+            }
+        );
+    }
+
+    #[test]
+    fn test_parse_expression_success() {
+        let tokens = vec![Token::Constant(1)];
+        let mut parser = Parser::new(tokens);
+        let result = parser.parse_expression();
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), Expression::IntegerConstant(1));
+    }
+
+    #[test]
+    fn test_parse_expression_failure_no_tokens() {
+        let tokens = vec![];
+        let mut parser = Parser::new(tokens);
+        let result = parser.parse_expression();
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), ParserError::UnexpectedEndOfInput);
+    }
+
+    #[test]
+    fn test_parse_expression_failure_unexpected_sequence() {
+        let tokens = vec![Token::IntKeyword];
+        let mut parser = Parser::new(tokens);
+        let result = parser.parse_expression();
+        assert!(result.is_err());
+        assert_eq!(
+            result.unwrap_err(),
+            ParserError::UnexpectedToken {
+                expected: TokenType::Constant,
                 actual: TokenType::IntKeyword
             }
         );
