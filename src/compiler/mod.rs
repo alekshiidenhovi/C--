@@ -1,6 +1,8 @@
 pub mod lexer;
+pub mod parser;
 pub mod tokens;
 
+use parser::Parser;
 use std::io;
 use std::path::Path;
 
@@ -17,13 +19,14 @@ pub fn run_cmm_compiler(
     process_until: &Option<Stage>,
 ) -> io::Result<()> {
     let input_str = std::fs::read_to_string(input_path)?;
-    let _tokens = lexer::tokenize(&input_str);
+    let tokens = lexer::tokenize(&input_str);
 
     if let Some(Stage::Lex) = process_until {
         return Ok(());
     }
 
-    let _ast = "This would be the AST, when we have implemented the compiler";
+    let mut parser = Parser::new(tokens);
+    let _ast = parser.parse_ast();
 
     if let Some(Stage::Parse) = process_until {
         return Ok(());
