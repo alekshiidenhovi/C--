@@ -200,4 +200,37 @@ mod tests {
         assert!(result.is_err());
         assert_eq!(result.unwrap_err(), ParserError::UnexpectedEndOfInput);
     }
+
+    #[test]
+    fn test_expect_token_success() {
+        let tokens = vec![Token::IntKeyword];
+        let mut parser = Parser::new(tokens);
+        let result = parser.expect_token(TokenType::IntKeyword);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), ());
+    }
+
+    #[test]
+    fn test_expect_token_failure_no_tokens() {
+        let tokens = vec![];
+        let mut parser = Parser::new(tokens);
+        let result = parser.expect_token(TokenType::IntKeyword);
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), ParserError::UnexpectedEndOfInput);
+    }
+
+    #[test]
+    fn test_expect_token_failure_unexpected_token() {
+        let tokens = vec![Token::IntKeyword];
+        let mut parser = Parser::new(tokens);
+        let result = parser.expect_token(TokenType::ReturnKeyword);
+        assert!(result.is_err());
+        assert_eq!(
+            result.unwrap_err(),
+            ParserError::UnexpectedToken {
+                expected: TokenType::ReturnKeyword,
+                actual: TokenType::IntKeyword
+            }
+        );
+    }
 }
