@@ -1,3 +1,5 @@
+use crate::compiler::tokens::Token;
+
 /// Represents the abstract syntax tree of a program.
 #[derive(Debug, PartialEq)]
 pub enum Ast {
@@ -9,7 +11,7 @@ pub enum Ast {
 #[derive(Debug, PartialEq)]
 pub enum FunctionDefinition {
     /// A function definition consisting of its name and body.
-    Function(String, Statement),
+    Function(Token, Statement),
 }
 
 /// Represents a statement within a function.
@@ -23,5 +25,5 @@ pub enum Statement {
 #[derive(Debug, PartialEq)]
 pub enum Expression {
     /// Represents an integer literal constant.
-    IntegerConstant(i32),
+    IntegerConstant(Token),
 }

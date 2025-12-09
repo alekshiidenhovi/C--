@@ -61,7 +61,7 @@ impl Parser {
     /// ];
     /// let mut parser = Parser::new(tokens);
     /// let ast = parser.parse_ast()?;
-    /// assert_eq!(ast, Ast::Program(FunctionDefinition::Function("main".to_string(), Statement::Return(Expression::IntegerConstant(1)))));
+    /// assert_eq!(ast, Ast::Program(FunctionDefinition::Function(Token::Identifier("main".to_string()), Statement::Return(Expression::IntegerConstant(Token::Constant(1))))));
     /// # Ok::<(), ParserError>(())
     /// ```
     pub fn parse_ast(&mut self) -> Result<Ast, ParserError> {
@@ -111,10 +111,10 @@ impl Parser {
     /// # Returns
     ///
     /// A `Result` containing the identifier string if successful, or a `ParserError`.
-    fn parse_identifier(&mut self) -> Result<String, ParserError> {
+    fn parse_identifier(&mut self) -> Result<Token, ParserError> {
         let token = self.consume_token()?;
         match token {
-            Token::Identifier(identifier) => Ok(identifier),
+            Token::Identifier(_) => Ok(token),
             _ => {
                 return Err(ParserError::UnexpectedToken {
                     expected: TokenType::Identifier,
@@ -134,7 +134,7 @@ impl Parser {
     fn parse_expression(&mut self) -> Result<Expression, ParserError> {
         let token = self.consume_token()?;
         match token {
-            Token::Constant(value) => Ok(Expression::IntegerConstant(value)),
+            Token::Constant(_) => Ok(Expression::IntegerConstant(token)),
             _ => {
                 return Err(ParserError::UnexpectedToken {
                     expected: TokenType::Constant,
@@ -240,7 +240,10 @@ mod tests {
         let mut parser = Parser::new(tokens);
         let result = parser.parse_expression();
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), Expression::IntegerConstant(1));
+        assert_eq!(
+            result.unwrap(),
+            Expression::IntegerConstant(Token::Constant(1))
+        );
     }
 
     #[test]
@@ -273,7 +276,7 @@ mod tests {
         let mut parser = Parser::new(tokens);
         let result = parser.parse_identifier();
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), "main".to_string());
+        assert_eq!(result.unwrap(), Token::Identifier("main".to_string()));
     }
 
     #[test]
@@ -308,7 +311,7 @@ mod tests {
         assert!(result.is_ok());
         assert_eq!(
             result.unwrap(),
-            Statement::Return(Expression::IntegerConstant(1))
+            Statement::Return(Expression::IntegerConstant(Token::Constant(1)))
         );
     }
 
@@ -356,8 +359,8 @@ mod tests {
         assert_eq!(
             result.unwrap(),
             FunctionDefinition::Function(
-                "main".to_string(),
-                Statement::Return(Expression::IntegerConstant(1))
+                Token::Identifier("main".to_string()),
+                Statement::Return(Expression::IntegerConstant(Token::Constant(1)))
             )
         );
     }
@@ -417,8 +420,8 @@ mod tests {
         assert_eq!(
             result.unwrap(),
             Ast::Program(FunctionDefinition::Function(
-                "main".to_string(),
-                Statement::Return(Expression::IntegerConstant(1))
+                Token::Identifier("main".to_string()),
+                Statement::Return(Expression::IntegerConstant(Token::Constant(1)))
             ))
         );
     }
