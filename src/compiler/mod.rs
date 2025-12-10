@@ -19,6 +19,7 @@ pub fn run_cmm_compiler(
     output_path: &Path,
     process_until: &Option<Stage>,
 ) -> anyhow::Result<()> {
+    println!("Compiling with a custom C compiler...");
     let input_str = std::fs::read_to_string(input_path)?;
     let tokens = lexer::tokenize(&input_str);
 
@@ -41,6 +42,8 @@ pub fn run_cmm_compiler(
 
     let assembly_code = code_emission::emit_assembly(&assembly_ast);
     let _ = std::fs::write(output_path, assembly_code);
+
+    println!("Assembly code created at: {}", output_path.display());
 
     Ok(())
 }
