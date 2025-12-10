@@ -115,3 +115,70 @@ fn convert_expression(c_expression: &Expression) -> Result<Operand, CodegenError
         },
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_convert_expression_success() {
+        let c_expression = Expression::IntegerConstant(Token::Constant(1));
+        let result = convert_expression(&c_expression);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), Operand::Imm(1));
+    }
+
+    #[test]
+    fn test_convert_expression_failure_unexpected_token() {
+        let c_expression = Expression::IntegerConstant(Token::Identifier("main".to_string()));
+        let result = convert_expression(&c_expression);
+        assert!(result.is_err());
+        assert_eq!(
+            result.unwrap_err(),
+            CodegenError::UnexpectedToken {
+                expected: TokenType::Constant,
+                actual: TokenType::Identifier
+            }
+        );
+    }
+
+    #[test]
+    fn test_convert_statement_success() {
+        let c_statement = Statement::Return(Expression::IntegerConstant(Token::Constant(1)));
+        let result = convert_statement(&c_statement);
+        assert!(result.is_ok());
+        assert_eq!(
+            result.unwrap(),
+            vec![
+                Instruction::Mov {
+                    source: Operand::Imm(1),
+                    destination: Operand::Register,
+                },
+                Instruction::Ret
+            ]
+        );
+    }
+
+    #[test]
+    fn convert_function_success() {
+        let c_function = FunctionDefinition::Function(
+            Token::Identifier("main".to_string()),
+            Statement::Return(Expression::IntegerConstant(Token::Constant(1))),
+        );
+        let result = convert_function(&c_function);
+        assert!(result.is_ok());
+        assert_eq!(
+            result.unwrap(),
+            AsmFunctionDefinition::Function {
+                identifier: "main".to_string(),
+                instructions: vec![
+                    Instruction::Mov {
+                        source: Operand::Imm(1),
+                        destination: Operand::Register,
+                    },
+                    Instruction::Ret
+                ]
+            }
+        );
+    }
+}
