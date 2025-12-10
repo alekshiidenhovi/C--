@@ -13,6 +13,9 @@ pub enum Token {
     OpenBrace,
     CloseBrace,
     Semicolon,
+    Tilde,
+    Hyphen,
+    DoubleHyphen,
 }
 
 impl Token {
@@ -49,6 +52,9 @@ impl Token {
             Token::OpenBrace => TokenType::OpenBrace,
             Token::CloseBrace => TokenType::CloseBrace,
             Token::Semicolon => TokenType::Semicolon,
+            Token::Tilde => TokenType::Tilde,
+            Token::Hyphen => TokenType::Hyphen,
+            Token::DoubleHyphen => TokenType::DoubleHyphen,
         }
     }
 }
@@ -66,6 +72,9 @@ impl fmt::Display for Token {
             Token::OpenBrace => write!(f, "OpenBrace"),
             Token::CloseBrace => write!(f, "CloseBrace"),
             Token::Semicolon => write!(f, "Semicolon"),
+            Token::Tilde => write!(f, "Tilde"),
+            Token::Hyphen => write!(f, "Hyphen"),
+            Token::DoubleHyphen => write!(f, "DoubleHyphen"),
         }
     }
 }
@@ -83,6 +92,9 @@ pub enum TokenType {
     OpenBrace,
     CloseBrace,
     Semicolon,
+    Tilde,
+    Hyphen,
+    DoubleHyphen,
 }
 
 impl fmt::Display for TokenType {
@@ -98,6 +110,9 @@ impl fmt::Display for TokenType {
             TokenType::OpenBrace => write!(f, "OpenBrace"),
             TokenType::CloseBrace => write!(f, "CloseBrace"),
             TokenType::Semicolon => write!(f, "Semicolon"),
+            TokenType::Tilde => write!(f, "Tilde"),
+            TokenType::Hyphen => write!(f, "Hyphen"),
+            TokenType::DoubleHyphen => write!(f, "DoubleHyphen"),
         }
     }
 }
