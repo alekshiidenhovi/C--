@@ -1,6 +1,6 @@
 use std::fmt;
 
-/// Represents a token in the C language.
+/// Represents a token in the C-- language.
 #[derive(Debug, PartialEq, Clone)]
 pub enum Token {
     Identifier(String),
@@ -79,7 +79,7 @@ impl fmt::Display for Token {
     }
 }
 
-/// Represents the type of a token.
+/// Represents the type of a C-- token.
 #[derive(Debug, PartialEq, Clone)]
 pub enum TokenType {
     Identifier,
