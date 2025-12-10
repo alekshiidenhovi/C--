@@ -56,7 +56,11 @@ fn emit_instruction(instruction: &Instruction) -> String {
         Instruction::Mov {
             source,
             destination,
-        } => format!("mov {}{}", emit_operand(source), emit_operand(destination)),
+        } => format!(
+            "mov {}, {}",
+            emit_operand(source),
+            emit_operand(destination)
+        ),
         Instruction::Ret => "ret".to_string(),
     }
 }
