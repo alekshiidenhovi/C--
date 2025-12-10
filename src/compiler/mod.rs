@@ -1,9 +1,9 @@
+pub mod codegen;
 pub mod lexer;
 pub mod parser;
 pub mod tokens;
 
 use parser::Parser;
-use std::io;
 use std::path::Path;
 
 /// Represents the different stages of a compilation process.
@@ -17,7 +17,7 @@ pub fn run_cmm_compiler(
     input_path: &Path,
     output_path: &Path,
     process_until: &Option<Stage>,
-) -> io::Result<()> {
+) -> anyhow::Result<()> {
     let input_str = std::fs::read_to_string(input_path)?;
     let tokens = lexer::tokenize(&input_str);
 
@@ -26,9 +26,15 @@ pub fn run_cmm_compiler(
     }
 
     let mut parser = Parser::new(tokens);
-    let _ast = parser.parse_ast();
+    let c_ast = parser.parse_ast()?;
 
     if let Some(Stage::Parse) = process_until {
+        return Ok(());
+    }
+
+    let _assembly_ast = codegen::convert_ast(c_ast)?;
+
+    if let Some(Stage::Codegen) = process_until {
         return Ok(());
     }
 
@@ -54,9 +60,7 @@ _main:                                  ## @main
 .subsections_via_symbols",
     );
 
-    if let Some(Stage::Codegen) = process_until {
-        return Ok(());
-    }
+    let _ = std::fs::write(output_path, assembly_code);
 
-    std::fs::write(output_path, assembly_code)
+    Ok(())
 }
