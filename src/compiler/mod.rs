@@ -1,3 +1,4 @@
+pub mod code_emission;
 pub mod codegen;
 pub mod lexer;
 pub mod parser;
@@ -32,34 +33,13 @@ pub fn run_cmm_compiler(
         return Ok(());
     }
 
-    let _assembly_ast = codegen::convert_ast(c_ast)?;
+    let assembly_ast = codegen::convert_ast(c_ast)?;
 
     if let Some(Stage::Codegen) = process_until {
         return Ok(());
     }
 
-    let assembly_code = String::from(
-        "        .section        __TEXT,__text,regular,pure_instructions
-        .build_version macos, 15, 0     sdk_version 15, 5
-        .globl  _main                           ## -- Begin function main
-        .p2align        4, 0x90
-_main:                                  ## @main
-        .cfi_startproc
-## %bb.0:
-        pushq   %rbp
-        .cfi_def_cfa_offset 16
-        .cfi_offset %rbp, -16
-        movq    %rsp, %rbp
-        .cfi_def_cfa_register %rbp
-        movl    $0, -4(%rbp)
-        movl    $2, %eax
-        popq    %rbp
-        retq
-        .cfi_endproc
-                                        ## -- End function
-.subsections_via_symbols",
-    );
-
+    let assembly_code = code_emission::emit_assembly(&assembly_ast);
     let _ = std::fs::write(output_path, assembly_code);
 
     Ok(())
