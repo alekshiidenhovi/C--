@@ -58,6 +58,9 @@ pub fn tokenize(input_str: &str) -> Vec<Token> {
     let mut token_vec = Vec::new();
     let parsers: Vec<LexerParser> = vec![
         parse_identifier_or_keyword,
+        parse_double_hyphen,
+        parse_hyphen,
+        parse_tilde,
         parse_constant,
         parse_semicolon,
         parse_open_brace,
@@ -79,6 +82,67 @@ pub fn tokenize(input_str: &str) -> Vec<Token> {
         }
     }
     token_vec
+}
+
+/// Attempts to parse a tilde from the input string.
+///
+/// # Arguments
+///
+/// * `input_str`: The input string to parse.
+///
+/// # Returns
+///
+/// On successful parsing, return a tuple of remaining input string and the parsed tilde.
+/// On failure, returns a non-matching pattern error.
+fn parse_tilde(input_str: &str) -> LexerParseResult<Token> {
+    let parsed_char = parse_character(input_str, '~');
+    match parsed_char {
+        Ok((remaining_str, _)) => Ok((remaining_str, Token::Tilde)),
+        Err(err) => Err(err),
+    }
+}
+
+/// Attempts to parse a hyphen from the input string.
+///
+/// # Arguments
+///
+/// * `input_str`: The input string to parse.
+///
+/// # Returns
+///
+/// On successful parsing, return a tuple of remaining input string and the parsed hyphen.
+/// On failure, returns a non-matching pattern error.
+fn parse_hyphen(input_str: &str) -> LexerParseResult<Token> {
+    let parsed_char = parse_character(input_str, '-');
+    match parsed_char {
+        Ok((remaining_str, _)) => Ok((remaining_str, Token::Hyphen)),
+        Err(err) => Err(err),
+    }
+}
+
+/// Attempts to parse a double hyphen from the input string.
+///
+/// # Arguments
+///
+/// * `input_str`: The input string to parse.
+///
+/// # Returns
+///
+/// On successful parsing, return a tuple of remaining input string and the parsed double hyphen.
+/// On failure, returns a non-matching pattern error.
+fn parse_double_hyphen(input_str: &str) -> LexerParseResult<Token> {
+    static PATTERN: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^--").unwrap());
+    match PATTERN.captures(input_str) {
+        Some(matched) => {
+            let matched_str = &matched[0];
+            let remaining_str = input_str.strip_prefix(matched_str).unwrap().to_string();
+            let token = Token::DoubleHyphen;
+            Ok((remaining_str, token))
+        }
+        None => Err(LexerError::NonmatchingPattern {
+            found: input_str.to_string(),
+        }),
+    }
 }
 
 /// Attempts to parse a semicolon from the input string.
@@ -323,6 +387,30 @@ mod tests {
                 expected: 'b'
             }
         );
+    }
+
+    #[test]
+    fn parse_valid_hyphen() {
+        let input = "-";
+        let result = parse_hyphen(input);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), (String::from(""), Token::Hyphen));
+    }
+
+    #[test]
+    fn parse_valid_double_hyphen() {
+        let input = "--";
+        let result = parse_double_hyphen(input);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), (String::from(""), Token::DoubleHyphen));
+    }
+
+    #[test]
+    fn parse_valid_tilde() {
+        let input = "~";
+        let result = parse_tilde(input);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), (String::from(""), Token::Tilde));
     }
 
     #[test]
