@@ -9,14 +9,20 @@ pub enum AssemblyAst {
 #[derive(Debug, PartialEq)]
 pub enum FunctionDefinition {
     /// A function with a name and a list of instructions.
-    Function(String, Vec<Instruction>),
+    Function {
+        identifier: String,
+        instructions: Vec<Instruction>,
+    },
 }
 
 /// Represents a single instruction in the assembly code.
 #[derive(Debug, PartialEq)]
 pub enum Instruction {
     /// Move operation: copies a value from a source operand to a destination operand.
-    Mov(Operand, Operand),
+    Mov {
+        source: Operand,
+        destination: Operand,
+    },
     /// Return instruction: signifies the end of a function execution.
     Ret,
 }
