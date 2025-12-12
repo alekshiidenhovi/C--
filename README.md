@@ -2,7 +2,7 @@
 
 This is a work-in-progress project that aims to be implement a significant subset of the C17 programming language. The project delivers a CLI application that allows the user to turn C source code files into binary executables.
 
-## Setup
+## Getting Started
 
 The project is tested only on MacOS.
 

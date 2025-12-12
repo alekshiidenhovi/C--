@@ -3,7 +3,7 @@
 This tutorial will guide you through the process of compiling a C source file into an executable binary file. It also showcases the driver and compiler options that can be used to stop the compilation process after a specific stage.
 
 ## Tutorial
-This tutorial assumes that you have already completed the [Getting Started](./README.md) section.
+This tutorial assumes that you have already completed the [Getting Started](./README.md#getting-started) section.
 
 ### Full compilation
 To compile your C source file into an executable binary file, run the following command in the root directory of the project:
