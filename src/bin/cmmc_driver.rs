@@ -84,7 +84,6 @@ fn main() -> anyhow::Result<()> {
         }
         Ok(CompilerResult::Final(_)) => {}
         Err(e) => {
-            println!("Error occurred during C-- compilation: {:?}", e);
             return Err(e);
         }
     }
