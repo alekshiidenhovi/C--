@@ -1,5 +1,6 @@
 use crate::compiler::codegen::asm_ast::{
-    AssemblyAst, FunctionDefinition as AsmFunctionDefinition, Instruction, Operand,
+    AssemblyAst, FunctionDefinition as AsmFunctionDefinition, Instruction, Operand, Register,
+    UnaryOp,
 };
 
 /// Emits assembly code from an abstract syntax tree.
@@ -32,8 +33,11 @@ fn emit_function(function: &AsmFunctionDefinition) -> String {
             identifier,
             instructions,
         } => {
-            let mut function_code = format!("\t.globl _{}\n", identifier);
-            function_code.push_str(&format!("_{}:\n", identifier));
+            let asm_identifier = "_".to_string() + identifier;
+            let mut function_code = format!("\t.globl {}\n", asm_identifier);
+            function_code.push_str(&format!("{}:\n", asm_identifier));
+            function_code.push_str(&format!("\tpushq %rbp\n"));
+            function_code.push_str(&format!("\tmovq %rsp, %rbp\n"));
             for instruction in instructions {
                 function_code.push_str(&format!("\t{}\n", emit_instruction(instruction)));
             }
@@ -57,11 +61,36 @@ fn emit_instruction(instruction: &Instruction) -> String {
             source,
             destination,
         } => format!(
-            "mov {}, {}",
+            "\tmovl {}, {}",
             emit_operand(source),
             emit_operand(destination)
         ),
-        Instruction::Ret => "ret".to_string(),
+        Instruction::Ret => {
+            let mut epilogue = "\tmovq %rbp, %rsp\n".to_string();
+            epilogue.push_str("\tpopq %rbp\n");
+            epilogue.push_str("\tret\n");
+            epilogue
+        }
+        Instruction::Unary { op, operand } => {
+            format!("\t{} {}", emit_unary_op(op), emit_operand(operand))
+        }
+        Instruction::AllocateStack(stack_size) => format!("\tsubq ${}, %rsp", stack_size),
+    }
+}
+
+/// Converts a `UnaryOp` to its corresponding string representation.
+///
+/// # Arguments
+///
+/// * `op`: The `UnaryOp` to convert.
+///
+/// # Returns
+///
+/// A string representing the unary operation.
+fn emit_unary_op(op: &UnaryOp) -> String {
+    match op {
+        UnaryOp::Neg => "negl".to_string(),
+        UnaryOp::Not => "notl".to_string(),
     }
 }
 
@@ -77,6 +106,26 @@ fn emit_instruction(instruction: &Instruction) -> String {
 fn emit_operand(operand: &Operand) -> String {
     match operand {
         Operand::Imm(value) => format!("${}", value),
-        Operand::Register => "%eax".to_string(),
+        Operand::Register(register) => format!("{}", emit_register(register)),
+        Operand::Stack(offset) => format!("{offset}(%rbp)", offset = offset),
+        Operand::Pseudo(_) => panic!(
+            "Pseudo registers should not be emitted to assembly. Have you converted them correctly to actual register addresses?"
+        ),
+    }
+}
+
+/// Maps a `Register` enum variant to its assembly syntax representation.
+///
+/// # Arguments
+///
+/// * `register`: The `Register` enum variant to convert.
+///
+/// # Returns
+///
+/// A `String` representing the AT&T assembly syntax for the given register.
+fn emit_register(register: &Register) -> String {
+    match register {
+        Register::AX => "%eax".to_string(),
+        Register::R10 => "%r10d".to_string(),
     }
 }
