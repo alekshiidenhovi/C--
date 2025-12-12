@@ -1,6 +1,6 @@
 # C-- compiler tutorial
 
-This tutorial will guide you through the process of compiling a C source file into an executable binary file. It also showcases the driver and compiler options that can be used to stop the compilation process after a specific stage.
+This tutorial will guide you through the process of compiling a C source file into an executable binary file, and executing those binary files. It also showcases the driver and compiler options that can be used to stop the compilation process after a specific stage.
 
 ## Tutorial
 This tutorial assumes that you have already completed the [Getting Started](./README.md#getting-started) section.
@@ -98,5 +98,3 @@ Compiling with a custom C compiler...
 Error: Parser error: Unexpected token DoubleHyphen, expected one of [Constant, H
 yphen, Tilde, OpenParen]
 ```
-
-## Exercises

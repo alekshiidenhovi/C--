@@ -1,6 +1,6 @@
 # C-- compiler
 
-This is a work-in-progress project that aims to be implement a significant subset of the C17 programming language. The project delivers a CLI application that allows the user to turn C source code files into binary executables.
+This is a work-in-progress project that aims to be implement a significant subset of the C17 programming language. The project delivers a CLI application that allows the user to compile C source code into binary executables.
 
 ## Getting Started
 
@@ -10,7 +10,7 @@ The project is tested only on MacOS.
 The compiler targets the x64 instruction set architecture (also known as x86-64 or amd64). You will need a MacOS system with an x64 processor, or one with Apple Silicon that can emulate x64..
 
 #### Running on Apple Silicon
-If your computer has an Apple Silicon processor, you can use Rosetta 2 to run the programs you compile. To open an x64 shell, run: `arch -x86_64 /bin/zsh`.
+If your computer has an Apple Silicon processor, you can use Rosetta 2 to run the programs you compile. To open an x64 shell, run: `arch -x86_64 /bin/zsh`. You can verify that the operation worked correctly by running `uname -m`, which should output x86_64 to the console.
 
 ### Install Rust
 The compiler is implemented in Rust. Install Rust using [rustup](https://rustup.rs/). After installation, run `cargo --version` to verify that the installation was successful.
