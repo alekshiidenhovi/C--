@@ -95,8 +95,6 @@ Note that while you can use multiple complement operators in a row ("~~" is vali
 Invoking GCC Preprocessor...
 Preprocessed file created at: ./programs/tutorial/nested_negation_broken.i
 Compiling with a custom C compiler...
-Error occurred during C-- compilation: Parser error: Unexpected token DoubleHyph
-en, expected one of [Constant, Hyphen, Tilde, OpenParen]
 Error: Parser error: Unexpected token DoubleHyphen, expected one of [Constant, H
 yphen, Tilde, OpenParen]
 ```
