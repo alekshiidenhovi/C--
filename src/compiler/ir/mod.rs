@@ -169,3 +169,137 @@ impl TackyEmitter {
         temp_name
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_make_temporary() {
+        let mut tacky_emitter = TackyEmitter::new();
+        let temp_name = tacky_emitter.make_temporary();
+        assert_eq!(temp_name, "tmp.0");
+        let temp_name = tacky_emitter.make_temporary();
+        assert_eq!(temp_name, "tmp.1");
+    }
+
+    #[test]
+    fn test_emit_tacky_constant_only() {
+        let mut tacky_emitter = TackyEmitter::new();
+        let c_expression = Expression::IntegerConstant(Token::Constant(1));
+        let mut tacky_instructions = vec![];
+        let tacky_value = tacky_emitter.emit_tacky(&c_expression, &mut tacky_instructions);
+
+        assert_eq!(tacky_value, Ok(TackyValue::Constant(1)));
+        assert_eq!(tacky_instructions, vec![]);
+    }
+
+    #[test]
+    fn test_emit_tacky_single_negate_expression() {
+        let mut tacky_emitter = TackyEmitter::new();
+        let c_expression = Expression::Unary(
+            UnaryOperator::Negate,
+            Box::new(Expression::IntegerConstant(Token::Constant(1))),
+        );
+        let mut tacky_instructions = vec![];
+        let tacky_value = tacky_emitter.emit_tacky(&c_expression, &mut tacky_instructions);
+
+        assert_eq!(tacky_value, Ok(TackyValue::Variable(String::from("tmp.0"))));
+        assert_eq!(
+            tacky_instructions,
+            vec![TackyInstruction::Unary {
+                operator: TackyUnaryOperator::Negate,
+                source: TackyValue::Constant(1),
+                destination: TackyValue::Variable(String::from("tmp.0")),
+            }]
+        );
+    }
+
+    #[test]
+    fn test_emit_tacky_single_complement_expression() {
+        let mut tacky_emitter = TackyEmitter::new();
+        let c_expression = Expression::Unary(
+            UnaryOperator::Complement,
+            Box::new(Expression::IntegerConstant(Token::Constant(1))),
+        );
+        let mut tacky_instructions = vec![];
+        let tacky_value = tacky_emitter.emit_tacky(&c_expression, &mut tacky_instructions);
+
+        assert_eq!(tacky_value, Ok(TackyValue::Variable(String::from("tmp.0"))));
+        assert_eq!(
+            tacky_instructions,
+            vec![TackyInstruction::Unary {
+                operator: TackyUnaryOperator::Complement,
+                source: TackyValue::Constant(1),
+                destination: TackyValue::Variable(String::from("tmp.0")),
+            }]
+        );
+    }
+
+    #[test]
+    fn test_emit_tacky_double_unary_expression() {
+        let mut tacky_emitter = TackyEmitter::new();
+        let c_expression = Expression::Unary(
+            UnaryOperator::Negate,
+            Box::new(Expression::Unary(
+                UnaryOperator::Complement,
+                Box::new(Expression::IntegerConstant(Token::Constant(1))),
+            )),
+        );
+        let mut tacky_instructions = vec![];
+        let tacky_value = tacky_emitter.emit_tacky(&c_expression, &mut tacky_instructions);
+
+        assert_eq!(tacky_value, Ok(TackyValue::Variable(String::from("tmp.1"))));
+        assert_eq!(
+            tacky_instructions,
+            vec![
+                TackyInstruction::Unary {
+                    operator: TackyUnaryOperator::Complement,
+                    source: TackyValue::Constant(1),
+                    destination: TackyValue::Variable(String::from("tmp.0")),
+                },
+                TackyInstruction::Unary {
+                    operator: TackyUnaryOperator::Negate,
+                    source: TackyValue::Variable(String::from("tmp.0")),
+                    destination: TackyValue::Variable(String::from("tmp.1")),
+                }
+            ]
+        );
+    }
+
+    #[test]
+    fn test_emit_ast() {
+        let identifier = "main".to_string();
+        let mut tacky_emitter = TackyEmitter::new();
+        let c_ast = Ast::Program(FunctionDefinition::Function(
+            Token::Identifier(identifier.clone()),
+            Statement::Return(Expression::Unary(
+                UnaryOperator::Negate,
+                Box::new(Expression::Unary(
+                    UnaryOperator::Complement,
+                    Box::new(Expression::IntegerConstant(Token::Constant(1))),
+                )),
+            )),
+        ));
+        let tacky_ast = tacky_emitter.convert_ast(c_ast);
+        assert_eq!(
+            tacky_ast,
+            Ok(TackyIR::Program(TackyFunction::Function {
+                identifier,
+                instructions: vec![
+                    TackyInstruction::Unary {
+                        operator: TackyUnaryOperator::Complement,
+                        source: TackyValue::Constant(1),
+                        destination: TackyValue::Variable(String::from("tmp.0")),
+                    },
+                    TackyInstruction::Unary {
+                        operator: TackyUnaryOperator::Negate,
+                        source: TackyValue::Variable(String::from("tmp.0")),
+                        destination: TackyValue::Variable(String::from("tmp.1")),
+                    },
+                    TackyInstruction::Return(TackyValue::Variable(String::from("tmp.1"))),
+                ]
+            }))
+        );
+    }
+}
