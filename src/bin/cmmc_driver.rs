@@ -11,20 +11,24 @@ struct CliArgs {
     /// Input file to process.
     c_file_path: PathBuf,
 
-    /// Tokenizes the source code and prints the tokens.
-    #[clap(long, conflicts_with_all = &["parse", "codegen"], group = "operation")]
+    /// Tokenizes the C-- source code into tokens
+    #[clap(long, conflicts_with_all = &["parse", "codegen", "tacky"], group = "operation")]
     lex: bool,
 
-    /// Parses the tokens into an AST and prints the structure.
-    #[clap(long, conflicts_with_all = &["lex", "codegen"], group = "operation")]
+    /// Parses tokens into an AST
+    #[clap(long, conflicts_with_all = &["lex", "codegen", "tacky"], group = "operation")]
     parse: bool,
 
-    /// Generates machine code from the source and prints assembly.
-    #[clap(long, conflicts_with_all = &["lex", "parse"], group = "operation")]
+    /// Emits a TACKY IR from the AST
+    #[clap(long, conflicts_with_all = &["lex", "parse", "codegen"], group = "operation")]
+    tacky: bool,
+
+    /// Generates machine code from TACKY IR
+    #[clap(long, conflicts_with_all = &["lex", "parse", "tacky"], group = "operation")]
     codegen: bool,
 
     /// Stops the compiler after assembly code generation.
-    #[clap(short = 'S', conflicts_with_all = &["lex", "parse", "codegen"], group = "operation")]
+    #[clap(short = 'S', conflicts_with_all = &["lex", "parse", "codegen", "tacky"], group = "operation")]
     stop_after_codegen: bool,
 }
 
@@ -43,10 +47,11 @@ fn main() -> anyhow::Result<()> {
         .into());
     }
 
-    let process_until = match (args.lex, args.parse, args.codegen) {
-        (true, false, false) => Some(Stage::Lex),
-        (false, true, false) => Some(Stage::Parse),
-        (false, false, true) => Some(Stage::Codegen),
+    let process_until = match (args.lex, args.parse, args.tacky, args.codegen) {
+        (true, false, false, false) => Some(Stage::Lex),
+        (false, true, false, false) => Some(Stage::Parse),
+        (false, false, true, false) => Some(Stage::Tacky),
+        (false, false, false, true) => Some(Stage::Codegen),
         _ => None,
     };
 

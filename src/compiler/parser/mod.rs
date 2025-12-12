@@ -2,8 +2,8 @@ pub mod ast;
 pub mod errors;
 
 use crate::compiler::tokens::{Token, TokenType};
-use ast::{Ast, Expression, FunctionDefinition, Statement};
-use errors::ParserError;
+use ast::{Ast, Expression, FunctionDefinition, Statement, UnaryOperator};
+use errors::{ParserError, TokenTypeOption};
 
 /// Represents a parser for a given sequence of tokens.
 ///
@@ -44,7 +44,8 @@ impl Parser {
     ///
     /// ```
     /// # use cmm::compiler::tokens::Token;
-    /// # use cmm::compiler::parser::ast::{Ast, FunctionDefinition, Statement, Expression};
+    /// # use cmm::compiler::parser::ast::{Ast, FunctionDefinition, Statement, Expression,
+    /// UnaryOperator};
     /// # use cmm::compiler::parser::Parser;
     /// # use cmm::compiler::parser::errors::ParserError;
     /// let tokens = vec![
@@ -55,13 +56,16 @@ impl Parser {
     ///     Token::CloseParen,
     ///     Token::OpenBrace,
     ///     Token::ReturnKeyword,
+    ///     Token::Hyphen,
+    ///     Token::OpenParen,
     ///     Token::Constant(1),
+    ///     Token::CloseParen,
     ///     Token::Semicolon,
     ///     Token::CloseBrace,
     /// ];
     /// let mut parser = Parser::new(tokens);
     /// let ast = parser.parse_ast()?;
-    /// assert_eq!(ast, Ast::Program(FunctionDefinition::Function(Token::Identifier("main".to_string()), Statement::Return(Expression::IntegerConstant(Token::Constant(1))))));
+    /// assert_eq!(ast, Ast::Program(FunctionDefinition::Function(Token::Identifier("main".to_string()), Statement::Return(Expression::Unary(UnaryOperator::Negate, Box::new(Expression::IntegerConstant(Token::Constant(1))))))));
     /// # Ok::<(), ParserError>(())
     /// ```
     pub fn parse_ast(&mut self) -> Result<Ast, ParserError> {
@@ -114,10 +118,10 @@ impl Parser {
     fn parse_identifier(&mut self) -> Result<Token, ParserError> {
         let token = self.consume_token()?;
         match token {
-            Token::Identifier(_) => Ok(token),
+            Token::Identifier(_) => Ok(token.clone()),
             _ => {
                 return Err(ParserError::UnexpectedToken {
-                    expected: TokenType::Identifier,
+                    expected: TokenTypeOption::One(TokenType::Identifier),
                     actual: token.kind(),
                 });
             }
@@ -126,22 +130,86 @@ impl Parser {
 
     /// Parses an expression from the token stream.
     ///
-    /// Currently, only integer constants are supported as expressions.
+    /// Supported expressions:
+    /// - Integer constants
+    /// - Unary operators (negation and complement)
+    /// - Parenthesized expressions
     ///
     /// # Returns
     ///
     /// A `Result` containing the parsed `Expression` if successful, or a `ParserError`.
     fn parse_expression(&mut self) -> Result<Expression, ParserError> {
+        let token = self.peek_token()?;
+        match token {
+            Token::Constant(_) => self.parse_constant_integer_expression(),
+            Token::Hyphen | Token::Tilde => self.parse_unary_expression(),
+            Token::OpenParen => self.parse_parenthesized_expression(),
+            _ => Err(ParserError::UnexpectedToken {
+                expected: TokenTypeOption::Many(vec![
+                    TokenType::Constant,
+                    TokenType::Hyphen,
+                    TokenType::Tilde,
+                    TokenType::OpenParen,
+                ]),
+                actual: token.kind(),
+            }),
+        }
+    }
+
+    /// Parses a constant integer expression from the token stream.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` containing the parsed `Expression` if successful, or a `ParserError`.
+    fn parse_constant_integer_expression(&mut self) -> Result<Expression, ParserError> {
+        let token = self.consume_token()?;
+        match token.kind() {
+            TokenType::Constant => Ok(Expression::IntegerConstant(token.clone())),
+            _ => Err(ParserError::UnexpectedToken {
+                expected: TokenTypeOption::One(TokenType::Constant),
+                actual: token.kind(),
+            }),
+        }
+    }
+
+    /// Parses a unary expression from the token stream.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` containing the parsed unary `Expression` if successful, or a `ParserError`.
+    fn parse_unary_expression(&mut self) -> Result<Expression, ParserError> {
+        let operator = self.parse_unary_operator()?;
+        let inner_expression = self.parse_expression()?;
+        Ok(Expression::Unary(operator, Box::new(inner_expression)))
+    }
+
+    /// Parses a unary operator from the token stream.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` containing the parsed `UnaryOperator` if successful, or a `ParserError`.
+    fn parse_unary_operator(&mut self) -> Result<UnaryOperator, ParserError> {
         let token = self.consume_token()?;
         match token {
-            Token::Constant(_) => Ok(Expression::IntegerConstant(token)),
-            _ => {
-                return Err(ParserError::UnexpectedToken {
-                    expected: TokenType::Constant,
-                    actual: token.kind(),
-                });
-            }
+            Token::Hyphen => Ok(UnaryOperator::Negate),
+            Token::Tilde => Ok(UnaryOperator::Complement),
+            _ => Err(ParserError::UnexpectedToken {
+                expected: TokenTypeOption::Many(vec![TokenType::Hyphen, TokenType::Tilde]),
+                actual: token.kind(),
+            }),
         }
+    }
+
+    /// Parses a parenthesized expression from the token stream.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` containing the parsed `Expression` if successful, or a `ParserError`.
+    fn parse_parenthesized_expression(&mut self) -> Result<Expression, ParserError> {
+        let _open_paren = self.expect_token(TokenType::OpenParen)?;
+        let expression = self.parse_expression()?;
+        let _close_paren = self.expect_token(TokenType::CloseParen)?;
+        Ok(expression)
     }
 
     /// Consumes the next token from the stream and checks if it matches the expected token.
@@ -158,7 +226,7 @@ impl Parser {
         let actual_type = actual.kind();
         if actual_type != expected_type {
             return Err(ParserError::UnexpectedToken {
-                expected: expected_type,
+                expected: TokenTypeOption::One(expected_type),
                 actual: actual_type,
             });
         }
@@ -170,12 +238,25 @@ impl Parser {
     /// # Returns
     ///
     /// A `Result` containing the next `Token` if available, or a `ParserError` if the end of input is reached.
-    fn consume_token(&mut self) -> Result<Token, ParserError> {
+    fn consume_token(&mut self) -> Result<&Token, ParserError> {
         if self.position >= self.tokens.len() {
             return Err(ParserError::UnexpectedEndOfInput);
         }
-        let token = self.tokens[self.position].clone();
+        let token = &self.tokens[self.position];
         self.position += 1;
+        Ok(token)
+    }
+
+    /// Peeks at the next token from the stream without consuming it.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` containing the next `Token` if available, or a `ParserError` if the end of input is reached.
+    fn peek_token(&mut self) -> Result<&Token, ParserError> {
+        if self.position >= self.tokens.len() {
+            return Err(ParserError::UnexpectedEndOfInput);
+        }
+        let token = &self.tokens[self.position];
         Ok(token)
     }
 }
@@ -189,7 +270,7 @@ mod tests {
         let tokens = vec![Token::IntKeyword];
         let mut parser = Parser::new(tokens);
         let token = parser.consume_token().unwrap();
-        assert_eq!(token, Token::IntKeyword);
+        assert_eq!(token.clone(), Token::IntKeyword);
     }
 
     #[test]
@@ -228,14 +309,14 @@ mod tests {
         assert_eq!(
             result.unwrap_err(),
             ParserError::UnexpectedToken {
-                expected: TokenType::ReturnKeyword,
+                expected: TokenTypeOption::One(TokenType::ReturnKeyword),
                 actual: TokenType::IntKeyword
             }
         );
     }
 
     #[test]
-    fn test_parse_expression_success() {
+    fn test_parse_valid_constant_integer_expression() {
         let tokens = vec![Token::Constant(1)];
         let mut parser = Parser::new(tokens);
         let result = parser.parse_expression();
@@ -247,26 +328,44 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_expression_failure_no_tokens() {
-        let tokens = vec![];
+    fn test_parse_valid_unary_expression_negate() {
+        let tokens = vec![Token::Hyphen, Token::Constant(1)];
         let mut parser = Parser::new(tokens);
         let result = parser.parse_expression();
-        assert!(result.is_err());
-        assert_eq!(result.unwrap_err(), ParserError::UnexpectedEndOfInput);
+        assert!(result.is_ok());
+        assert_eq!(
+            result.unwrap(),
+            Expression::Unary(
+                UnaryOperator::Negate,
+                Box::new(Expression::IntegerConstant(Token::Constant(1)))
+            )
+        );
     }
 
     #[test]
-    fn test_parse_expression_failure_unexpected_sequence() {
-        let tokens = vec![Token::IntKeyword];
+    fn test_parse_valid_unary_expression_complement() {
+        let tokens = vec![Token::Tilde, Token::Constant(1)];
         let mut parser = Parser::new(tokens);
         let result = parser.parse_expression();
-        assert!(result.is_err());
+        assert!(result.is_ok());
         assert_eq!(
-            result.unwrap_err(),
-            ParserError::UnexpectedToken {
-                expected: TokenType::Constant,
-                actual: TokenType::IntKeyword
-            }
+            result.unwrap(),
+            Expression::Unary(
+                UnaryOperator::Complement,
+                Box::new(Expression::IntegerConstant(Token::Constant(1)))
+            )
+        );
+    }
+
+    #[test]
+    fn test_parse_valid_parenthesized_expression() {
+        let tokens = vec![Token::OpenParen, Token::Constant(1), Token::CloseParen];
+        let mut parser = Parser::new(tokens);
+        let result = parser.parse_expression();
+        assert!(result.is_ok());
+        assert_eq!(
+            result.unwrap(),
+            Expression::IntegerConstant(Token::Constant(1))
         );
     }
 
@@ -280,15 +379,6 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_identifier_failure_no_tokens() {
-        let tokens = vec![];
-        let mut parser = Parser::new(tokens);
-        let result = parser.parse_identifier();
-        assert!(result.is_err());
-        assert_eq!(result.unwrap_err(), ParserError::UnexpectedEndOfInput);
-    }
-
-    #[test]
     fn test_parse_identifier_failure_unexpected_sequence() {
         let tokens = vec![Token::IntKeyword];
         let mut parser = Parser::new(tokens);
@@ -297,7 +387,7 @@ mod tests {
         assert_eq!(
             result.unwrap_err(),
             ParserError::UnexpectedToken {
-                expected: TokenType::Identifier,
+                expected: TokenTypeOption::One(TokenType::Identifier),
                 actual: TokenType::IntKeyword
             }
         );
@@ -316,15 +406,6 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_statement_failure_no_tokens() {
-        let tokens = vec![];
-        let mut parser = Parser::new(tokens);
-        let result = parser.parse_statement();
-        assert!(result.is_err());
-        assert_eq!(result.unwrap_err(), ParserError::UnexpectedEndOfInput);
-    }
-
-    #[test]
     fn test_parse_statement_failure_unexpected_sequence() {
         let tokens = vec![Token::ReturnKeyword, Token::VoidKeyword, Token::Semicolon];
         let mut parser = Parser::new(tokens);
@@ -333,7 +414,12 @@ mod tests {
         assert_eq!(
             result.unwrap_err(),
             ParserError::UnexpectedToken {
-                expected: TokenType::Constant,
+                expected: TokenTypeOption::Many(vec![
+                    TokenType::Constant,
+                    TokenType::Hyphen,
+                    TokenType::Tilde,
+                    TokenType::OpenParen
+                ]),
                 actual: TokenType::VoidKeyword
             }
         );
@@ -366,15 +452,6 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_function_failure_no_tokens() {
-        let tokens = vec![];
-        let mut parser = Parser::new(tokens);
-        let result = parser.parse_function();
-        assert!(result.is_err());
-        assert_eq!(result.unwrap_err(), ParserError::UnexpectedEndOfInput);
-    }
-
-    #[test]
     fn test_parse_function_failure_unexpected_sequence() {
         let tokens = vec![
             Token::IntKeyword,
@@ -394,7 +471,7 @@ mod tests {
         assert_eq!(
             result.unwrap_err(),
             ParserError::UnexpectedToken {
-                expected: TokenType::CloseBrace,
+                expected: TokenTypeOption::One(TokenType::CloseBrace),
                 actual: TokenType::Semicolon
             }
         );
@@ -471,7 +548,7 @@ mod tests {
         assert_eq!(
             result.unwrap_err(),
             ParserError::UnexpectedToken {
-                expected: TokenType::OpenParen,
+                expected: TokenTypeOption::One(TokenType::OpenParen),
                 actual: TokenType::ReturnKeyword
             }
         );

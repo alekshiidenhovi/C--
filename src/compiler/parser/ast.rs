@@ -26,4 +26,12 @@ pub enum Statement {
 pub enum Expression {
     /// Represents an integer literal constant.
     IntegerConstant(Token),
+    Unary(UnaryOperator, Box<Expression>),
+}
+
+/// Represents a unary operator.
+#[derive(Debug, PartialEq)]
+pub enum UnaryOperator {
+    Complement,
+    Negate,
 }
