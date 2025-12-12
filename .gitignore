@@ -3,3 +3,7 @@
 *.o
 *.i
 *.s
+
+programs/tutorial/*
+!programs/tutorial/return_2.c
+
