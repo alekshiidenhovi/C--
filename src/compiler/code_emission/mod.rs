@@ -39,7 +39,7 @@ fn emit_function(function: &AsmFunctionDefinition) -> String {
             function_code.push_str(&format!("\tpushq %rbp\n"));
             function_code.push_str(&format!("\tmovq %rsp, %rbp\n"));
             for instruction in instructions {
-                function_code.push_str(&format!("\t{}\n", emit_instruction(instruction)));
+                function_code.push_str(&format!("{}\n", emit_instruction(instruction)));
             }
             function_code
         }
