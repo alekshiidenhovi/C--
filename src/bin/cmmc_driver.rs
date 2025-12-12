@@ -29,7 +29,7 @@ struct CliArgs {
 
     /// Stops the compiler after assembly code generation.
     #[clap(short = 'S', conflicts_with_all = &["lex", "parse", "codegen", "tacky"], group = "operation")]
-    stop_after_codegen: bool,
+    stop_after_cmm_compiler: bool,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -64,10 +64,7 @@ fn main() -> anyhow::Result<()> {
     let _ = run_cmm_compiler(&compiler_input_path, &compiler_output_path, &process_until);
     std::fs::remove_file(&preprocessor_output_path)?;
 
-    if process_until.is_some() {
-        return Ok(());
-    }
-    if args.stop_after_codegen {
+    if args.stop_after_cmm_compiler {
         return Ok(());
     }
 
