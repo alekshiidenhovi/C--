@@ -1,5 +1,5 @@
 use cmm::common::validation;
-use cmm::compiler::{Stage, run_cmm_compiler};
+use cmm::compiler::{CompilerResult, Stage, run_cmm_compiler};
 use cmm::compiler_driver::{run_gcc_linker, run_gcc_preprocessor};
 
 use clap::Parser;
@@ -61,11 +61,46 @@ fn main() -> anyhow::Result<()> {
 
     let (compiler_input_path, compiler_output_path) =
         validation::validate_compiler_paths(&preprocessor_output_path, None)?;
-    let _ = run_cmm_compiler(&compiler_input_path, &compiler_output_path, &process_until);
+    let compilation_result =
+        run_cmm_compiler(&compiler_input_path, &compiler_output_path, &process_until);
     std::fs::remove_file(&preprocessor_output_path)?;
 
+    match compilation_result {
+        Ok(CompilerResult::Lexer(tokens)) => {
+            println!("Lexer output: {:?}", tokens);
+            return Ok(());
+        }
+        Ok(CompilerResult::Parser(ast)) => {
+            println!("Parser output: {:?}", ast);
+            return Ok(());
+        }
+        Ok(CompilerResult::Tacky(tacky_ir)) => {
+            println!("TACKY IR output: {:?}", tacky_ir);
+            return Ok(());
+        }
+        Ok(CompilerResult::Codegen(assembly_ast)) => {
+            println!("Codegen output: {:?}", assembly_ast);
+            return Ok(());
+        }
+        Ok(CompilerResult::Final(_)) => {}
+        Err(e) => {
+            println!("Error occurred during C-- compilation: {:?}", e);
+            return Err(e);
+        }
+    }
+
     if args.stop_after_cmm_compiler {
-        return Ok(());
+        match compilation_result {
+            Ok(CompilerResult::Final(assembly_code)) => {
+                println!("Assembly code output: {:?}", assembly_code);
+                return Ok(());
+            }
+            _ => {
+                return Err(anyhow::anyhow!(
+                    "Assembly code output not available! Something went wrong during compilation."
+                ));
+            }
+        }
     }
 
     let (linker_input_path, linker_output_path) =
