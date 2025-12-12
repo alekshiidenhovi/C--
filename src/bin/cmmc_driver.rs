@@ -62,11 +62,11 @@ fn main() -> anyhow::Result<()> {
     let (compiler_input_path, compiler_output_path) =
         validation::validate_compiler_paths(&preprocessor_output_path, None)?;
     let _ = run_cmm_compiler(&compiler_input_path, &compiler_output_path, &process_until);
+    std::fs::remove_file(&preprocessor_output_path)?;
 
     if process_until.is_some() {
         return Ok(());
     }
-    std::fs::remove_file(&preprocessor_output_path)?;
     if args.stop_after_codegen {
         return Ok(());
     }
