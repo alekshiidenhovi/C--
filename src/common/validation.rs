@@ -51,28 +51,18 @@ fn validate_paths_internal(
             path.to_path_buf()
         }
         None => {
-            if let Some(ext) = output_ext {
-                let path_buf = input_path.with_extension(ext);
-                if path_buf.exists() {
-                    return Err(anyhow!(
-                        "Output file already exists: {}",
-                        path_buf.display()
-                    ));
-                }
-                path_buf
-            } else {
-                let file_stem = input_path
-                    .file_stem()
-                    .ok_or_else(|| anyhow!("Input path has no file stem"))?;
-                let path_buf = PathBuf::from(file_stem);
-                if path_buf.exists() {
-                    return Err(anyhow!(
-                        "Output file already exists: {}",
-                        path_buf.display()
-                    ));
-                }
-                path_buf
+            let output_ext = match output_ext {
+                Some(ext) => ext,
+                None => "",
+            };
+            let path_buf = input_path.with_extension(output_ext);
+            if path_buf.exists() {
+                return Err(anyhow!(
+                    "Output file already exists: {}",
+                    path_buf.display()
+                ));
             }
+            path_buf
         }
     };
 
