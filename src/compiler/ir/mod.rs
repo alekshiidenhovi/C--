@@ -10,9 +10,6 @@ use tacky_ir::{TackyFunction, TackyIR, TackyInstruction, TackyUnaryOperator, Tac
 ///
 /// It holds the C-- AST and a temporary variable counter.
 pub struct TackyEmitter {
-    /// The C-- AST to be converted.
-    c_ast: Ast,
-
     /// A counter for temporary variables.
     temp_counter: usize,
 }
@@ -20,18 +17,11 @@ pub struct TackyEmitter {
 impl TackyEmitter {
     /// Creates a new `TackyEmitter` instance.
     ///
-    /// # Arguments
-    ///
-    /// * `c_ast`: A reference to the C-- `Ast` to be converted.
-    ///
     /// # Returns
     ///
     /// A new `TackyEmitter` instance initialized with the provided C-- AST.
-    pub fn new(c_ast: Ast) -> Self {
-        Self {
-            c_ast,
-            temp_counter: 0,
-        }
+    pub fn new() -> Self {
+        Self { temp_counter: 0 }
     }
 
     /// Converts the C-- AST into an intermediate TACKY representation.
