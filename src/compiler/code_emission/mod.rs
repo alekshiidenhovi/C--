@@ -1,4 +1,4 @@
-use crate::compiler::code_gen::asm_ast::{
+use crate::compiler::code_gen::assembly_ast::{
     AssemblyAst, AssemblyFunction, AssemblyInstruction, AssemblyRegister, AssemblyUnaryOperand,
     AssemblyUnaryOperation,
 };

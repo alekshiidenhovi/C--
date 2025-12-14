@@ -35,7 +35,7 @@ pub enum CompilerResult {
     /// The result of the Tacky intermediate representation generation.
     Tacky(ir_gen::tacky_ast::TackyAst),
     /// The result of the code generator, an assembly AST.
-    Codegen(code_gen::asm_ast::AssemblyAst),
+    Codegen(code_gen::assembly_ast::AssemblyAst),
     /// The final emitted code as a string.
     Final(String),
 }

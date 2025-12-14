@@ -1,11 +1,11 @@
-pub mod asm_ast;
+pub mod assembly_ast;
 pub mod constants;
 pub mod errors;
 
 use crate::compiler::ir_gen::tacky_ast::{
     TackyAst, TackyFunction, TackyInstruction, TackyUnaryOperator, TackyValue,
 };
-use asm_ast::{
+use assembly_ast::{
     AssemblyAst, AssemblyFunction, AssemblyInstruction, AssemblyRegister, AssemblyUnaryOperand,
     AssemblyUnaryOperation,
 };
@@ -27,7 +27,7 @@ use std::collections::HashMap;
 /// # use cmm::compiler::tokens::Token;
 /// # use cmm::compiler::ir_gen::tacky_ast::{TackyFunction, TackyAst, TackyInstruction, TackyUnaryOperator, TackyValue};
 /// # use cmm::compiler::code_gen::convert_ast;
-/// # use cmm::compiler::code_gen::asm_ast::{AssemblyAst, AssemblyFunction, AssemblyInstruction, AssemblyUnaryOperand, AssemblyUnaryOperation, AssemblyRegister};
+/// # use cmm::compiler::code_gen::assembly_ast::{AssemblyAst, AssemblyFunction, AssemblyInstruction, AssemblyUnaryOperand, AssemblyUnaryOperation, AssemblyRegister};
 /// # use cmm::compiler::code_gen::errors::CodegenError;
 /// # use std::collections::LinkedList;
 /// let identifier = "main".to_string();
