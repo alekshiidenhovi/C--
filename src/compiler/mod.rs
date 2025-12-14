@@ -33,7 +33,7 @@ pub enum CompilerResult {
     /// The result of the parser, an Abstract Syntax Tree (AST).
     Parser(parser::cmm_ast::CmmAst),
     /// The result of the Tacky intermediate representation generation.
-    Tacky(ir_gen::tacky_ast::TackyIR),
+    Tacky(ir_gen::tacky_ast::TackyAst),
     /// The result of the code generator, an assembly AST.
     Codegen(code_gen::asm_ast::AssemblyAst),
     /// The final emitted code as a string.

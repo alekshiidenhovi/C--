@@ -3,7 +3,7 @@ pub mod constants;
 pub mod errors;
 
 use crate::compiler::ir_gen::tacky_ast::{
-    TackyFunction, TackyIR, TackyInstruction, TackyUnaryOperator, TackyValue,
+    TackyAst, TackyFunction, TackyInstruction, TackyUnaryOperator, TackyValue,
 };
 use asm_ast::{AssemblyAst, FunctionDefinition, Instruction, Operand, Register, UnaryOp};
 use errors::CodegenError;
@@ -22,14 +22,14 @@ use std::collections::HashMap;
 ///
 /// ```
 /// # use cmm::compiler::tokens::Token;
-/// # use cmm::compiler::ir_gen::tacky_ast::{TackyFunction, TackyIR, TackyInstruction, TackyUnaryOperator, TackyValue};
+/// # use cmm::compiler::ir_gen::tacky_ast::{TackyFunction, TackyAst, TackyInstruction, TackyUnaryOperator, TackyValue};
 /// # use cmm::compiler::code_gen::convert_ast;
 /// # use cmm::compiler::code_gen::asm_ast::{AssemblyAst, FunctionDefinition as AsmFunctionDefinition, Instruction, Operand, UnaryOp, Register};
 /// # use cmm::compiler::code_gen::errors::CodegenError;
 /// # use std::collections::LinkedList;
 /// let identifier = "main".to_string();
 /// let temp_name = "tmp.0".to_string();
-/// let tacky_ast = TackyIR::Program(TackyFunction::Function {
+/// let tacky_ast = TackyAst::Program(TackyFunction::Function {
 ///     identifier: identifier.clone(),
 ///     instructions: vec![
 ///         TackyInstruction::Unary {
@@ -62,9 +62,9 @@ use std::collections::HashMap;
 /// }));
 /// # Ok::<(), CodegenError>(())
 /// ```
-pub fn convert_ast(tacky_ast: TackyIR) -> Result<AssemblyAst, CodegenError> {
+pub fn convert_ast(tacky_ast: TackyAst) -> Result<AssemblyAst, CodegenError> {
     let mut asm_ast = match tacky_ast {
-        TackyIR::Program(c_function) => AssemblyAst::Program(convert_function(&c_function)?),
+        TackyAst::Program(c_function) => AssemblyAst::Program(convert_function(&c_function)?),
     };
     let stack_offset = replace_pseudo_registers(&mut asm_ast);
     let asm_ast = fixup_instructions(asm_ast, stack_offset);

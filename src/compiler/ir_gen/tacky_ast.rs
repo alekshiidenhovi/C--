@@ -1,6 +1,6 @@
 /// Represents the top-level structure of TACKY Intermediate Representation.
 #[derive(Debug, Clone, PartialEq)]
-pub enum TackyIR {
+pub enum TackyAst {
     /// A complete TACKY function definition.
     Program(TackyFunction),
 }

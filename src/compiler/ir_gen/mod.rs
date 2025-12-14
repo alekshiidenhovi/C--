@@ -6,7 +6,7 @@ use crate::compiler::parser::cmm_ast::{
 };
 use crate::compiler::tokens::{Token, TokenType};
 use errors::IRConversionError;
-use tacky_ast::{TackyFunction, TackyIR, TackyInstruction, TackyUnaryOperator, TackyValue};
+use tacky_ast::{TackyAst, TackyFunction, TackyInstruction, TackyUnaryOperator, TackyValue};
 
 /// Represents an emitter for Tacky, a language or system.
 ///
@@ -36,11 +36,11 @@ impl TackyEmitter {
     ///
     /// A `Result` containing the generated `TackyFunction` on success,
     /// or a `CodegenError` on failure.
-    pub fn convert_ast(&mut self, cmm_ast: CmmAst) -> Result<TackyIR, IRConversionError> {
+    pub fn convert_ast(&mut self, cmm_ast: CmmAst) -> Result<TackyAst, IRConversionError> {
         let function = match cmm_ast {
             CmmAst::Program(c_function) => self.convert_function(&c_function)?,
         };
-        Ok(TackyIR::Program(function))
+        Ok(TackyAst::Program(function))
     }
 
     /// Converts a C-- function definition into a TACKY function definition.
@@ -286,7 +286,7 @@ mod tests {
         let tacky_ast = tacky_emitter.convert_ast(cmm_ast);
         assert_eq!(
             tacky_ast,
-            Ok(TackyIR::Program(TackyFunction::Function {
+            Ok(TackyAst::Program(TackyFunction::Function {
                 identifier,
                 instructions: vec![
                     TackyInstruction::Unary {
