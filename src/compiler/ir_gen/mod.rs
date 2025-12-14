@@ -1,12 +1,12 @@
 pub mod errors;
-pub mod tacky_ir;
+pub mod tacky_ast;
 
 use crate::compiler::parser::cmm_ast::{
     CmmAst, CmmExpression, CmmFunction, CmmStatement, CmmUnaryOperator,
 };
 use crate::compiler::tokens::{Token, TokenType};
 use errors::IRConversionError;
-use tacky_ir::{TackyFunction, TackyIR, TackyInstruction, TackyUnaryOperator, TackyValue};
+use tacky_ast::{TackyFunction, TackyIR, TackyInstruction, TackyUnaryOperator, TackyValue};
 
 /// Represents an emitter for Tacky, a language or system.
 ///

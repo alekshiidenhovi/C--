@@ -74,8 +74,8 @@ fn main() -> anyhow::Result<()> {
             println!("Parser output: {:?}", ast);
             return Ok(());
         }
-        Ok(CompilerResult::Tacky(tacky_ir)) => {
-            println!("TACKY IR output: {:?}", tacky_ir);
+        Ok(CompilerResult::Tacky(tacky_ast)) => {
+            println!("TACKY IR output: {:?}", tacky_ast);
             return Ok(());
         }
         Ok(CompilerResult::Codegen(assembly_ast)) => {
