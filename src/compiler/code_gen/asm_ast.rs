@@ -2,30 +2,30 @@
 #[derive(Debug, PartialEq, Clone)]
 pub enum AssemblyAst {
     /// Represents a complete program, containing a single function definition.
-    Program(FunctionDefinition),
+    Program(AssemblyFunction),
 }
 
 /// Represents the definition of a function.
 #[derive(Debug, PartialEq, Clone)]
-pub enum FunctionDefinition {
+pub enum AssemblyFunction {
     /// A function with a name and a list of instructions.
     Function {
         identifier: String,
-        instructions: Vec<Instruction>,
+        instructions: Vec<AssemblyInstruction>,
     },
 }
 
 /// Represents a single instruction in the assembly code.
 #[derive(Debug, PartialEq, Clone)]
-pub enum Instruction {
+pub enum AssemblyInstruction {
     /// Move operation: copies a value from a source operand to a destination operand.
     Mov {
-        source: Operand,
-        destination: Operand,
+        source: AssemblyUnaryOperand,
+        destination: AssemblyUnaryOperand,
     },
     Unary {
-        op: UnaryOp,
-        operand: Operand,
+        op: AssemblyUnaryOperation,
+        operand: AssemblyUnaryOperand,
     },
     AllocateStack(i32),
     /// Return instruction: signifies the end of a function execution.
@@ -34,18 +34,18 @@ pub enum Instruction {
 
 /// Represents an unary operation.
 #[derive(Debug, PartialEq, Clone)]
-pub enum UnaryOp {
+pub enum AssemblyUnaryOperation {
     Neg,
     Not,
 }
 
 /// Represents an operand for an instruction, which can be an immediate value or a register.
 #[derive(Debug, PartialEq, Clone)]
-pub enum Operand {
+pub enum AssemblyUnaryOperand {
     /// An immediate integer value.
     Imm(i32),
     /// A CPU register
-    Register(Register),
+    Register(AssemblyRegister),
     // A pseudo CPU register
     Pseudo(String),
     /// A stack location
@@ -54,7 +54,7 @@ pub enum Operand {
 
 /// Represents a CPU register.
 #[derive(Debug, PartialEq, Clone)]
-pub enum Register {
+pub enum AssemblyRegister {
     AX,
     R10,
 }

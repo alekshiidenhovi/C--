@@ -1,6 +1,6 @@
 use crate::compiler::code_gen::asm_ast::{
-    AssemblyAst, FunctionDefinition as AsmFunctionDefinition, Instruction, Operand, Register,
-    UnaryOp,
+    AssemblyAst, AssemblyFunction, AssemblyInstruction, AssemblyRegister, AssemblyUnaryOperand,
+    AssemblyUnaryOperation,
 };
 
 /// Emits assembly code from an abstract syntax tree.
@@ -22,14 +22,14 @@ pub fn emit_assembly(assembly_ast: &AssemblyAst) -> String {
 ///
 /// # Arguments
 ///
-/// * `function`: A reference to the `AsmFunctionDefinition` to be emitted.
+/// * `function`: A reference to the `AssemblyFunction` to be emitted.
 ///
 /// # Returns
 ///
 /// A `String` representing the assembly code for the function.
-fn emit_function(function: &AsmFunctionDefinition) -> String {
+fn emit_function(function: &AssemblyFunction) -> String {
     match function {
-        AsmFunctionDefinition::Function {
+        AssemblyFunction::Function {
             identifier,
             instructions,
         } => {
@@ -55,9 +55,9 @@ fn emit_function(function: &AsmFunctionDefinition) -> String {
 /// # Returns
 ///
 /// A `String` representing the assembly code for the instruction.
-fn emit_instruction(instruction: &Instruction) -> String {
+fn emit_instruction(instruction: &AssemblyInstruction) -> String {
     match instruction {
-        Instruction::Mov {
+        AssemblyInstruction::Mov {
             source,
             destination,
         } => format!(
@@ -65,16 +65,16 @@ fn emit_instruction(instruction: &Instruction) -> String {
             emit_operand(source),
             emit_operand(destination)
         ),
-        Instruction::Ret => {
+        AssemblyInstruction::Ret => {
             let mut epilogue = "\tmovq %rbp, %rsp\n".to_string();
             epilogue.push_str("\tpopq %rbp\n");
             epilogue.push_str("\tret\n");
             epilogue
         }
-        Instruction::Unary { op, operand } => {
+        AssemblyInstruction::Unary { op, operand } => {
             format!("\t{} {}", emit_unary_op(op), emit_operand(operand))
         }
-        Instruction::AllocateStack(stack_size) => format!("\tsubq ${}, %rsp", stack_size),
+        AssemblyInstruction::AllocateStack(stack_size) => format!("\tsubq ${}, %rsp", stack_size),
     }
 }
 
@@ -87,10 +87,10 @@ fn emit_instruction(instruction: &Instruction) -> String {
 /// # Returns
 ///
 /// A string representing the unary operation.
-fn emit_unary_op(op: &UnaryOp) -> String {
+fn emit_unary_op(op: &AssemblyUnaryOperation) -> String {
     match op {
-        UnaryOp::Neg => "negl".to_string(),
-        UnaryOp::Not => "notl".to_string(),
+        AssemblyUnaryOperation::Neg => "negl".to_string(),
+        AssemblyUnaryOperation::Not => "notl".to_string(),
     }
 }
 
@@ -103,12 +103,12 @@ fn emit_unary_op(op: &UnaryOp) -> String {
 /// # Returns
 ///
 /// A `String` representing the assembly code for the operand.
-fn emit_operand(operand: &Operand) -> String {
+fn emit_operand(operand: &AssemblyUnaryOperand) -> String {
     match operand {
-        Operand::Imm(value) => format!("${}", value),
-        Operand::Register(register) => format!("{}", emit_register(register)),
-        Operand::Stack(offset) => format!("{offset}(%rbp)", offset = offset),
-        Operand::Pseudo(_) => panic!(
+        AssemblyUnaryOperand::Imm(value) => format!("${}", value),
+        AssemblyUnaryOperand::Register(register) => format!("{}", emit_register(register)),
+        AssemblyUnaryOperand::Stack(offset) => format!("{offset}(%rbp)", offset = offset),
+        AssemblyUnaryOperand::Pseudo(_) => panic!(
             "Pseudo registers should not be emitted to assembly. Have you converted them correctly to actual register addresses?"
         ),
     }
@@ -123,9 +123,9 @@ fn emit_operand(operand: &Operand) -> String {
 /// # Returns
 ///
 /// A `String` representing the AT&T assembly syntax for the given register.
-fn emit_register(register: &Register) -> String {
+fn emit_register(register: &AssemblyRegister) -> String {
     match register {
-        Register::AX => "%eax".to_string(),
-        Register::R10 => "%r10d".to_string(),
+        AssemblyRegister::AX => "%eax".to_string(),
+        AssemblyRegister::R10 => "%r10d".to_string(),
     }
 }
