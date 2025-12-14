@@ -1,4 +1,4 @@
-use crate::compiler::codegen::asm_ast::{
+use crate::compiler::code_gen::asm_ast::{
     AssemblyAst, FunctionDefinition as AsmFunctionDefinition, Instruction, Operand, Register,
     UnaryOp,
 };

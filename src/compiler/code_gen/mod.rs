@@ -23,9 +23,9 @@ use std::collections::HashMap;
 /// ```
 /// # use cmm::compiler::tokens::Token;
 /// # use cmm::compiler::ir::tacky_ir::{TackyFunction, TackyIR, TackyInstruction, TackyUnaryOperator, TackyValue};
-/// # use cmm::compiler::codegen::convert_ast;
-/// # use cmm::compiler::codegen::asm_ast::{AssemblyAst, FunctionDefinition as AsmFunctionDefinition, Instruction, Operand, UnaryOp, Register};
-/// # use cmm::compiler::codegen::errors::CodegenError;
+/// # use cmm::compiler::code_gen::convert_ast;
+/// # use cmm::compiler::code_gen::asm_ast::{AssemblyAst, FunctionDefinition as AsmFunctionDefinition, Instruction, Operand, UnaryOp, Register};
+/// # use cmm::compiler::code_gen::errors::CodegenError;
 /// # use std::collections::LinkedList;
 /// let identifier = "main".to_string();
 /// let temp_name = "tmp.0".to_string();

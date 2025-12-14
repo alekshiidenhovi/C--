@@ -1,5 +1,5 @@
 pub mod code_emission;
-pub mod codegen;
+pub mod code_gen;
 pub mod ir;
 pub mod lexer;
 pub mod parser;
@@ -35,7 +35,7 @@ pub enum CompilerResult {
     /// The result of the Tacky intermediate representation generation.
     Tacky(ir::tacky_ir::TackyIR),
     /// The result of the code generator, an assembly AST.
-    Codegen(codegen::asm_ast::AssemblyAst),
+    Codegen(code_gen::asm_ast::AssemblyAst),
     /// The final emitted code as a string.
     Final(String),
 }
@@ -82,7 +82,7 @@ pub fn run_cmm_compiler(
         return Ok(CompilerResult::Tacky(tacky_ast));
     }
 
-    let assembly_ast = codegen::convert_ast(tacky_ast)?;
+    let assembly_ast = code_gen::convert_ast(tacky_ast)?;
 
     if let Some(Stage::Codegen) = process_until {
         return Ok(CompilerResult::Codegen(assembly_ast));
