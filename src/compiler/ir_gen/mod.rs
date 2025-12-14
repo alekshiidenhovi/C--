@@ -1,7 +1,9 @@
 pub mod errors;
 pub mod tacky_ir;
 
-use crate::compiler::parser::ast::{Ast, Expression, FunctionDefinition, Statement, UnaryOperator};
+use crate::compiler::parser::cmm_ast::{
+    CmmAst, CmmExpression, CmmFunction, CmmStatement, CmmUnaryOperator,
+};
 use crate::compiler::tokens::{Token, TokenType};
 use errors::IRConversionError;
 use tacky_ir::{TackyFunction, TackyIR, TackyInstruction, TackyUnaryOperator, TackyValue};
@@ -34,9 +36,9 @@ impl TackyEmitter {
     ///
     /// A `Result` containing the generated `TackyFunction` on success,
     /// or a `CodegenError` on failure.
-    pub fn convert_ast(&mut self, c_ast: Ast) -> Result<TackyIR, IRConversionError> {
-        let function = match c_ast {
-            Ast::Program(c_function) => self.convert_function(&c_function)?,
+    pub fn convert_ast(&mut self, cmm_ast: CmmAst) -> Result<TackyIR, IRConversionError> {
+        let function = match cmm_ast {
+            CmmAst::Program(c_function) => self.convert_function(&c_function)?,
         };
         Ok(TackyIR::Program(function))
     }
@@ -53,10 +55,10 @@ impl TackyEmitter {
     /// or a `CodegenError` on failure.
     fn convert_function(
         &mut self,
-        c_function: &FunctionDefinition,
+        cmm_function: &CmmFunction,
     ) -> Result<TackyFunction, IRConversionError> {
-        match c_function {
-            FunctionDefinition::Function(token, statement) => match token {
+        match cmm_function {
+            CmmFunction::Function(token, statement) => match token {
                 Token::Identifier(name) => {
                     let statements = self.convert_statement(statement)?;
                     Ok(TackyFunction::Function {
@@ -86,10 +88,10 @@ impl TackyEmitter {
     /// or a `CodegenError` on failure.
     fn convert_statement(
         &mut self,
-        c_statement: &Statement,
+        cmm_statement: &CmmStatement,
     ) -> Result<Vec<TackyInstruction>, IRConversionError> {
-        match c_statement {
-            Statement::Return(expression) => {
+        match cmm_statement {
+            CmmStatement::Return(expression) => {
                 let mut tacky_instructions = Vec::new();
                 let tacky_value = self.emit_tacky(expression, &mut tacky_instructions)?;
                 tacky_instructions.push(TackyInstruction::Return(tacky_value));
@@ -113,18 +115,18 @@ impl TackyEmitter {
     /// or a `CodegenError` on failure.
     fn emit_tacky(
         &mut self,
-        c_expression: &Expression,
+        cmm_expression: &CmmExpression,
         tacky_instructions: &mut Vec<TackyInstruction>,
     ) -> Result<TackyValue, IRConversionError> {
-        match c_expression {
-            Expression::IntegerConstant(token) => match token {
+        match cmm_expression {
+            CmmExpression::IntegerConstant(token) => match token {
                 Token::Constant(value) => Ok(TackyValue::Constant(*value)),
                 _ => Err(IRConversionError::UnexpectedToken {
                     expected: TokenType::Constant,
                     actual: token.kind(),
                 }),
             },
-            Expression::Unary(c_operator, c_inner_expression) => {
+            CmmExpression::Unary(c_operator, c_inner_expression) => {
                 let source = self.emit_tacky(c_inner_expression, tacky_instructions)?;
                 let destination_name = self.make_temporary();
                 let destination = TackyValue::Variable(destination_name);
@@ -149,10 +151,10 @@ impl TackyEmitter {
     ///
     /// A `Result` containing the generated `TackyUnaryOperator` on success,
     /// or a `CodegenError` on failure.
-    fn convert_unary_operator(&self, c_operator: &UnaryOperator) -> TackyUnaryOperator {
-        match c_operator {
-            UnaryOperator::Complement => TackyUnaryOperator::Complement,
-            UnaryOperator::Negate => TackyUnaryOperator::Negate,
+    fn convert_unary_operator(&self, cmm_operator: &CmmUnaryOperator) -> TackyUnaryOperator {
+        match cmm_operator {
+            CmmUnaryOperator::Complement => TackyUnaryOperator::Complement,
+            CmmUnaryOperator::Negate => TackyUnaryOperator::Negate,
         }
     }
 
@@ -186,9 +188,9 @@ mod tests {
     #[test]
     fn test_emit_tacky_constant_only() {
         let mut tacky_emitter = TackyEmitter::new();
-        let c_expression = Expression::IntegerConstant(Token::Constant(1));
+        let cmm_expression = CmmExpression::IntegerConstant(Token::Constant(1));
         let mut tacky_instructions = vec![];
-        let tacky_value = tacky_emitter.emit_tacky(&c_expression, &mut tacky_instructions);
+        let tacky_value = tacky_emitter.emit_tacky(&cmm_expression, &mut tacky_instructions);
 
         assert_eq!(tacky_value, Ok(TackyValue::Constant(1)));
         assert_eq!(tacky_instructions, vec![]);
@@ -197,12 +199,12 @@ mod tests {
     #[test]
     fn test_emit_tacky_single_negate_expression() {
         let mut tacky_emitter = TackyEmitter::new();
-        let c_expression = Expression::Unary(
-            UnaryOperator::Negate,
-            Box::new(Expression::IntegerConstant(Token::Constant(1))),
+        let cmm_expression = CmmExpression::Unary(
+            CmmUnaryOperator::Negate,
+            Box::new(CmmExpression::IntegerConstant(Token::Constant(1))),
         );
         let mut tacky_instructions = vec![];
-        let tacky_value = tacky_emitter.emit_tacky(&c_expression, &mut tacky_instructions);
+        let tacky_value = tacky_emitter.emit_tacky(&cmm_expression, &mut tacky_instructions);
 
         assert_eq!(tacky_value, Ok(TackyValue::Variable(String::from("tmp.0"))));
         assert_eq!(
@@ -218,12 +220,12 @@ mod tests {
     #[test]
     fn test_emit_tacky_single_complement_expression() {
         let mut tacky_emitter = TackyEmitter::new();
-        let c_expression = Expression::Unary(
-            UnaryOperator::Complement,
-            Box::new(Expression::IntegerConstant(Token::Constant(1))),
+        let cmm_expression = CmmExpression::Unary(
+            CmmUnaryOperator::Complement,
+            Box::new(CmmExpression::IntegerConstant(Token::Constant(1))),
         );
         let mut tacky_instructions = vec![];
-        let tacky_value = tacky_emitter.emit_tacky(&c_expression, &mut tacky_instructions);
+        let tacky_value = tacky_emitter.emit_tacky(&cmm_expression, &mut tacky_instructions);
 
         assert_eq!(tacky_value, Ok(TackyValue::Variable(String::from("tmp.0"))));
         assert_eq!(
@@ -239,15 +241,15 @@ mod tests {
     #[test]
     fn test_emit_tacky_double_unary_expression() {
         let mut tacky_emitter = TackyEmitter::new();
-        let c_expression = Expression::Unary(
-            UnaryOperator::Negate,
-            Box::new(Expression::Unary(
-                UnaryOperator::Complement,
-                Box::new(Expression::IntegerConstant(Token::Constant(1))),
+        let cmm_expression = CmmExpression::Unary(
+            CmmUnaryOperator::Negate,
+            Box::new(CmmExpression::Unary(
+                CmmUnaryOperator::Complement,
+                Box::new(CmmExpression::IntegerConstant(Token::Constant(1))),
             )),
         );
         let mut tacky_instructions = vec![];
-        let tacky_value = tacky_emitter.emit_tacky(&c_expression, &mut tacky_instructions);
+        let tacky_value = tacky_emitter.emit_tacky(&cmm_expression, &mut tacky_instructions);
 
         assert_eq!(tacky_value, Ok(TackyValue::Variable(String::from("tmp.1"))));
         assert_eq!(
@@ -271,17 +273,17 @@ mod tests {
     fn test_emit_ast() {
         let identifier = "main".to_string();
         let mut tacky_emitter = TackyEmitter::new();
-        let c_ast = Ast::Program(FunctionDefinition::Function(
+        let cmm_ast = CmmAst::Program(CmmFunction::Function(
             Token::Identifier(identifier.clone()),
-            Statement::Return(Expression::Unary(
-                UnaryOperator::Negate,
-                Box::new(Expression::Unary(
-                    UnaryOperator::Complement,
-                    Box::new(Expression::IntegerConstant(Token::Constant(1))),
+            CmmStatement::Return(CmmExpression::Unary(
+                CmmUnaryOperator::Negate,
+                Box::new(CmmExpression::Unary(
+                    CmmUnaryOperator::Complement,
+                    Box::new(CmmExpression::IntegerConstant(Token::Constant(1))),
                 )),
             )),
         ));
-        let tacky_ast = tacky_emitter.convert_ast(c_ast);
+        let tacky_ast = tacky_emitter.convert_ast(cmm_ast);
         assert_eq!(
             tacky_ast,
             Ok(TackyIR::Program(TackyFunction::Function {

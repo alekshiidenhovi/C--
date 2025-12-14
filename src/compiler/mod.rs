@@ -31,7 +31,7 @@ pub enum CompilerResult {
     /// The result of the lexer, a vector of tokens.
     Lexer(Vec<Token>),
     /// The result of the parser, an Abstract Syntax Tree (AST).
-    Parser(parser::ast::Ast),
+    Parser(parser::cmm_ast::CmmAst),
     /// The result of the Tacky intermediate representation generation.
     Tacky(ir_gen::tacky_ir::TackyIR),
     /// The result of the code generator, an assembly AST.
