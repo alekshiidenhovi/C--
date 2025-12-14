@@ -2,7 +2,7 @@ pub mod asm_ast;
 pub mod constants;
 pub mod errors;
 
-use crate::compiler::ir::tacky_ir::{
+use crate::compiler::ir_gen::tacky_ir::{
     TackyFunction, TackyIR, TackyInstruction, TackyUnaryOperator, TackyValue,
 };
 use asm_ast::{AssemblyAst, FunctionDefinition, Instruction, Operand, Register, UnaryOp};
@@ -22,7 +22,7 @@ use std::collections::HashMap;
 ///
 /// ```
 /// # use cmm::compiler::tokens::Token;
-/// # use cmm::compiler::ir::tacky_ir::{TackyFunction, TackyIR, TackyInstruction, TackyUnaryOperator, TackyValue};
+/// # use cmm::compiler::ir_gen::tacky_ir::{TackyFunction, TackyIR, TackyInstruction, TackyUnaryOperator, TackyValue};
 /// # use cmm::compiler::code_gen::convert_ast;
 /// # use cmm::compiler::code_gen::asm_ast::{AssemblyAst, FunctionDefinition as AsmFunctionDefinition, Instruction, Operand, UnaryOp, Register};
 /// # use cmm::compiler::code_gen::errors::CodegenError;

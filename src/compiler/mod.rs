@@ -1,6 +1,6 @@
 pub mod code_emission;
 pub mod code_gen;
-pub mod ir;
+pub mod ir_gen;
 pub mod lexer;
 pub mod parser;
 pub mod tokens;
@@ -33,7 +33,7 @@ pub enum CompilerResult {
     /// The result of the parser, an Abstract Syntax Tree (AST).
     Parser(parser::ast::Ast),
     /// The result of the Tacky intermediate representation generation.
-    Tacky(ir::tacky_ir::TackyIR),
+    Tacky(ir_gen::tacky_ir::TackyIR),
     /// The result of the code generator, an assembly AST.
     Codegen(code_gen::asm_ast::AssemblyAst),
     /// The final emitted code as a string.
@@ -75,7 +75,7 @@ pub fn run_cmm_compiler(
         return Ok(CompilerResult::Parser(c_ast));
     }
 
-    let mut tacky_emitter = ir::TackyEmitter::new();
+    let mut tacky_emitter = ir_gen::TackyEmitter::new();
     let tacky_ast = tacky_emitter.convert_ast(c_ast)?;
 
     if let Some(Stage::Tacky) = process_until {
