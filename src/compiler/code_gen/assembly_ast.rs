@@ -2,7 +2,7 @@
 #[derive(Debug, PartialEq, Clone)]
 pub enum AssemblyAst {
     /// Represents a complete program, containing a single function definition.
-    Program(AssemblyFunction),
+    Program { function: AssemblyFunction },
 }
 
 /// Represents the definition of a function.
@@ -27,7 +27,9 @@ pub enum AssemblyInstruction {
         op: AssemblyUnaryOperation,
         operand: AssemblyUnaryOperand,
     },
-    AllocateStack(i32),
+    AllocateStack {
+        stack_offset: i32,
+    },
     /// Return instruction: signifies the end of a function execution.
     Ret,
 }

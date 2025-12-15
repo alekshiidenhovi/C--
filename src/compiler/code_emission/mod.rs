@@ -14,7 +14,7 @@ use crate::compiler::code_gen::assembly_ast::{
 /// A `String` containing the generated assembly code.
 pub fn emit_assembly(assembly_ast: &AssemblyAst) -> String {
     match assembly_ast {
-        AssemblyAst::Program(function) => emit_function(function),
+        AssemblyAst::Program { function } => emit_function(function),
     }
 }
 
@@ -74,7 +74,9 @@ fn emit_instruction(instruction: &AssemblyInstruction) -> String {
         AssemblyInstruction::Unary { op, operand } => {
             format!("\t{} {}", emit_unary_op(op), emit_operand(operand))
         }
-        AssemblyInstruction::AllocateStack(stack_size) => format!("\tsubq ${}, %rsp", stack_size),
+        AssemblyInstruction::AllocateStack { stack_offset } => {
+            format!("\tsubq ${}, %rsp", stack_offset)
+        }
     }
 }
 
