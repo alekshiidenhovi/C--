@@ -64,7 +64,7 @@ impl Parser {
     /// ];
     /// let mut parser = Parser::new(tokens);
     /// let ast = parser.parse_ast()?;
-    /// assert_eq!(ast, CmmAst::Program(CmmFunction::Function(Token::Identifier("main".to_string()), CmmStatement::Return(CmmExpression::Unary(CmmUnaryOperator::Negate, Box::new(CmmExpression::IntegerConstant(Token::Constant(1))))))));
+    /// assert_eq!(ast, CmmAst::Program { function: CmmFunction::Function { identifier: Token::Identifier("main".to_string()), body: CmmStatement::Return { expression: CmmExpression::Unary { operator: CmmUnaryOperator::Negate, expression: Box::new(CmmExpression::IntegerConstant { value: Token::Constant(1) }) } } } });
     /// # Ok::<(), ParserError>(())
     /// ```
     pub fn parse_ast(&mut self) -> Result<CmmAst, ParserError> {
@@ -74,7 +74,7 @@ impl Parser {
                 found: self.tokens[self.position..].to_vec(),
             });
         }
-        Ok(CmmAst::Program(function))
+        Ok(CmmAst::Program { function })
     }
 
     /// Parses a function definition from the token stream.
@@ -94,7 +94,10 @@ impl Parser {
         let _open_brace = self.expect_token(TokenType::OpenBrace)?;
         let statement = self.parse_statement()?;
         let _close_brace = self.expect_token(TokenType::CloseBrace)?;
-        Ok(CmmFunction::Function(identifier, statement))
+        Ok(CmmFunction::Function {
+            identifier,
+            body: statement,
+        })
     }
 
     /// Parses a single statement from the token stream.
@@ -106,7 +109,7 @@ impl Parser {
         let _return = self.expect_token(TokenType::ReturnKeyword)?;
         let expression = self.parse_expression()?;
         let _semicolon = self.expect_token(TokenType::Semicolon)?;
-        Ok(CmmStatement::Return(expression))
+        Ok(CmmStatement::Return { expression })
     }
 
     /// Parses an identifier token from the token stream.
@@ -163,7 +166,9 @@ impl Parser {
     fn parse_constant_integer_expression(&mut self) -> Result<CmmExpression, ParserError> {
         let token = self.consume_token()?;
         match token.kind() {
-            TokenType::Constant => Ok(CmmExpression::IntegerConstant(token.clone())),
+            TokenType::Constant => Ok(CmmExpression::IntegerConstant {
+                value: token.clone(),
+            }),
             _ => Err(ParserError::UnexpectedToken {
                 expected: TokenTypeOption::One(TokenType::Constant),
                 actual: token.kind(),
@@ -179,7 +184,10 @@ impl Parser {
     fn parse_unary_expression(&mut self) -> Result<CmmExpression, ParserError> {
         let operator = self.parse_unary_operator()?;
         let inner_expression = self.parse_expression()?;
-        Ok(CmmExpression::Unary(operator, Box::new(inner_expression)))
+        Ok(CmmExpression::Unary {
+            operator,
+            expression: Box::new(inner_expression),
+        })
     }
 
     /// Parses a unary operator from the token stream.
@@ -322,7 +330,9 @@ mod tests {
         assert!(result.is_ok());
         assert_eq!(
             result.unwrap(),
-            CmmExpression::IntegerConstant(Token::Constant(1))
+            CmmExpression::IntegerConstant {
+                value: Token::Constant(1)
+            }
         );
     }
 
@@ -334,10 +344,12 @@ mod tests {
         assert!(result.is_ok());
         assert_eq!(
             result.unwrap(),
-            CmmExpression::Unary(
-                CmmUnaryOperator::Negate,
-                Box::new(CmmExpression::IntegerConstant(Token::Constant(1)))
-            )
+            CmmExpression::Unary {
+                operator: CmmUnaryOperator::Negate,
+                expression: Box::new(CmmExpression::IntegerConstant {
+                    value: Token::Constant(1)
+                })
+            }
         );
     }
 
@@ -349,10 +361,12 @@ mod tests {
         assert!(result.is_ok());
         assert_eq!(
             result.unwrap(),
-            CmmExpression::Unary(
-                CmmUnaryOperator::Complement,
-                Box::new(CmmExpression::IntegerConstant(Token::Constant(1)))
-            )
+            CmmExpression::Unary {
+                operator: CmmUnaryOperator::Complement,
+                expression: Box::new(CmmExpression::IntegerConstant {
+                    value: Token::Constant(1)
+                })
+            }
         );
     }
 
@@ -364,7 +378,9 @@ mod tests {
         assert!(result.is_ok());
         assert_eq!(
             result.unwrap(),
-            CmmExpression::IntegerConstant(Token::Constant(1))
+            CmmExpression::IntegerConstant {
+                value: Token::Constant(1)
+            }
         );
     }
 
@@ -400,7 +416,11 @@ mod tests {
         assert!(result.is_ok());
         assert_eq!(
             result.unwrap(),
-            CmmStatement::Return(CmmExpression::IntegerConstant(Token::Constant(1)))
+            CmmStatement::Return {
+                expression: CmmExpression::IntegerConstant {
+                    value: Token::Constant(1)
+                }
+            }
         );
     }
 
@@ -443,10 +463,14 @@ mod tests {
         assert!(result.is_ok());
         assert_eq!(
             result.unwrap(),
-            CmmFunction::Function(
-                Token::Identifier("main".to_string()),
-                CmmStatement::Return(CmmExpression::IntegerConstant(Token::Constant(1)))
-            )
+            CmmFunction::Function {
+                identifier: Token::Identifier("main".to_string()),
+                body: CmmStatement::Return {
+                    expression: CmmExpression::IntegerConstant {
+                        value: Token::Constant(1)
+                    }
+                }
+            }
         );
     }
 
@@ -495,10 +519,16 @@ mod tests {
         assert!(result.is_ok());
         assert_eq!(
             result.unwrap(),
-            CmmAst::Program(CmmFunction::Function(
-                Token::Identifier("main".to_string()),
-                CmmStatement::Return(CmmExpression::IntegerConstant(Token::Constant(1)))
-            ))
+            CmmAst::Program {
+                function: CmmFunction::Function {
+                    identifier: Token::Identifier("main".to_string()),
+                    body: CmmStatement::Return {
+                        expression: CmmExpression::IntegerConstant {
+                            value: Token::Constant(1)
+                        }
+                    }
+                }
+            }
         );
     }
 
