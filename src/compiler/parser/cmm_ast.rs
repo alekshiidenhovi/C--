@@ -1,5 +1,3 @@
-use crate::compiler::tokens::Token;
-
 /// Represents the abstract syntax tree of a program.
 #[derive(Debug, PartialEq)]
 pub enum CmmAst {
@@ -12,7 +10,7 @@ pub enum CmmAst {
 pub enum CmmFunction {
     /// A function definition consisting of its name and body.
     Function {
-        identifier: Token,
+        identifier: String,
         body: CmmStatement,
     },
 }
@@ -28,7 +26,7 @@ pub enum CmmStatement {
 #[derive(Debug, PartialEq)]
 pub enum CmmExpression {
     /// Represents an integer literal constant.
-    IntegerConstant { value: Token },
+    IntegerConstant { value: i32 },
     Unary {
         operator: CmmUnaryOperator,
         expression: Box<CmmExpression>,

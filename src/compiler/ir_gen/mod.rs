@@ -4,7 +4,6 @@ pub mod tacky_ast;
 use crate::compiler::parser::cmm_ast::{
     CmmAst, CmmExpression, CmmFunction, CmmStatement, CmmUnaryOperator,
 };
-use crate::compiler::tokens::{Token, TokenType};
 use errors::IRConversionError;
 use tacky_ast::{TackyAst, TackyFunction, TackyInstruction, TackyUnaryOperator, TackyValue};
 
@@ -58,21 +57,13 @@ impl TackyEmitter {
         cmm_function: &CmmFunction,
     ) -> Result<TackyFunction, IRConversionError> {
         match cmm_function {
-            CmmFunction::Function { identifier, body } => match identifier {
-                Token::Identifier(name) => {
-                    let statements = self.convert_statement(body)?;
-                    Ok(TackyFunction::Function {
-                        identifier: name.clone(),
-                        instructions: statements,
-                    })
-                }
-                _ => {
-                    return Err(IRConversionError::UnexpectedToken {
-                        expected: TokenType::Identifier,
-                        actual: identifier.kind(),
-                    });
-                }
-            },
+            CmmFunction::Function { identifier, body } => {
+                let statements = self.convert_statement(body)?;
+                Ok(TackyFunction::Function {
+                    identifier: identifier.clone(),
+                    instructions: statements,
+                })
+            }
         }
     }
 
@@ -119,13 +110,7 @@ impl TackyEmitter {
         tacky_instructions: &mut Vec<TackyInstruction>,
     ) -> Result<TackyValue, IRConversionError> {
         match cmm_expression {
-            CmmExpression::IntegerConstant { value } => match value {
-                Token::Constant(value) => Ok(TackyValue::Constant(*value)),
-                _ => Err(IRConversionError::UnexpectedToken {
-                    expected: TokenType::Constant,
-                    actual: value.kind(),
-                }),
-            },
+            CmmExpression::IntegerConstant { value } => Ok(TackyValue::Constant(*value)),
             CmmExpression::Unary {
                 operator,
                 expression,
@@ -191,9 +176,7 @@ mod tests {
     #[test]
     fn test_emit_tacky_constant_only() {
         let mut tacky_emitter = TackyEmitter::new();
-        let cmm_expression = CmmExpression::IntegerConstant {
-            value: Token::Constant(1),
-        };
+        let cmm_expression = CmmExpression::IntegerConstant { value: 1 };
         let mut tacky_instructions = vec![];
         let tacky_value = tacky_emitter.emit_tacky(&cmm_expression, &mut tacky_instructions);
 
@@ -206,9 +189,7 @@ mod tests {
         let mut tacky_emitter = TackyEmitter::new();
         let cmm_expression = CmmExpression::Unary {
             operator: CmmUnaryOperator::Negate,
-            expression: Box::new(CmmExpression::IntegerConstant {
-                value: Token::Constant(1),
-            }),
+            expression: Box::new(CmmExpression::IntegerConstant { value: 1 }),
         };
         let mut tacky_instructions = vec![];
         let tacky_value = tacky_emitter.emit_tacky(&cmm_expression, &mut tacky_instructions);
@@ -229,9 +210,7 @@ mod tests {
         let mut tacky_emitter = TackyEmitter::new();
         let cmm_expression = CmmExpression::Unary {
             operator: CmmUnaryOperator::Complement,
-            expression: Box::new(CmmExpression::IntegerConstant {
-                value: Token::Constant(1),
-            }),
+            expression: Box::new(CmmExpression::IntegerConstant { value: 1 }),
         };
         let mut tacky_instructions = vec![];
         let tacky_value = tacky_emitter.emit_tacky(&cmm_expression, &mut tacky_instructions);
@@ -254,9 +233,7 @@ mod tests {
             operator: CmmUnaryOperator::Negate,
             expression: Box::new(CmmExpression::Unary {
                 operator: CmmUnaryOperator::Complement,
-                expression: Box::new(CmmExpression::IntegerConstant {
-                    value: Token::Constant(1),
-                }),
+                expression: Box::new(CmmExpression::IntegerConstant { value: 1 }),
             }),
         };
         let mut tacky_instructions = vec![];
@@ -286,15 +263,13 @@ mod tests {
         let mut tacky_emitter = TackyEmitter::new();
         let cmm_ast = CmmAst::Program {
             function: CmmFunction::Function {
-                identifier: Token::Identifier(identifier.clone()),
+                identifier: identifier.clone(),
                 body: CmmStatement::Return {
                     expression: CmmExpression::Unary {
                         operator: CmmUnaryOperator::Negate,
                         expression: Box::new(CmmExpression::Unary {
                             operator: CmmUnaryOperator::Complement,
-                            expression: Box::new(CmmExpression::IntegerConstant {
-                                value: Token::Constant(1),
-                            }),
+                            expression: Box::new(CmmExpression::IntegerConstant { value: 1 }),
                         }),
                     },
                 },

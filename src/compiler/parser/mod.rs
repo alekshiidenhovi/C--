@@ -47,9 +47,10 @@ impl Parser {
     /// # use cmm::compiler::parser::cmm_ast::{CmmAst, CmmFunction, CmmStatement, CmmExpression, CmmUnaryOperator};
     /// # use cmm::compiler::parser::Parser;
     /// # use cmm::compiler::parser::errors::ParserError;
+    /// let identifier = "main".to_string();
     /// let tokens = vec![
     ///     Token::IntKeyword,
-    ///     Token::Identifier("main".to_string()),
+    ///     Token::Identifier(identifier.clone()),
     ///     Token::OpenParen,
     ///     Token::VoidKeyword,
     ///     Token::CloseParen,
@@ -64,7 +65,7 @@ impl Parser {
     /// ];
     /// let mut parser = Parser::new(tokens);
     /// let ast = parser.parse_ast()?;
-    /// assert_eq!(ast, CmmAst::Program { function: CmmFunction::Function { identifier: Token::Identifier("main".to_string()), body: CmmStatement::Return { expression: CmmExpression::Unary { operator: CmmUnaryOperator::Negate, expression: Box::new(CmmExpression::IntegerConstant { value: Token::Constant(1) }) } } } });
+    /// assert_eq!(ast, CmmAst::Program { function: CmmFunction::Function { identifier, body: CmmStatement::Return { expression: CmmExpression::Unary { operator: CmmUnaryOperator::Negate, expression: Box::new(CmmExpression::IntegerConstant { value: 1 }) } } } });
     /// # Ok::<(), ParserError>(())
     /// ```
     pub fn parse_ast(&mut self) -> Result<CmmAst, ParserError> {
@@ -112,15 +113,15 @@ impl Parser {
         Ok(CmmStatement::Return { expression })
     }
 
-    /// Parses an identifier token from the token stream.
+    /// Parses an identifier string from the token stream.
     ///
     /// # Returns
     ///
     /// A `Result` containing the identifier string if successful, or a `ParserError`.
-    fn parse_identifier(&mut self) -> Result<Token, ParserError> {
+    fn parse_identifier(&mut self) -> Result<String, ParserError> {
         let token = self.consume_token()?;
         match token {
-            Token::Identifier(_) => Ok(token.clone()),
+            Token::Identifier(identifier) => Ok(identifier.clone()),
             _ => {
                 return Err(ParserError::UnexpectedToken {
                     expected: TokenTypeOption::One(TokenType::Identifier),
@@ -165,10 +166,8 @@ impl Parser {
     /// A `Result` containing the parsed `CmmExpression` if successful, or a `ParserError`.
     fn parse_constant_integer_expression(&mut self) -> Result<CmmExpression, ParserError> {
         let token = self.consume_token()?;
-        match token.kind() {
-            TokenType::Constant => Ok(CmmExpression::IntegerConstant {
-                value: token.clone(),
-            }),
+        match token {
+            Token::Constant(value) => Ok(CmmExpression::IntegerConstant { value: *value }),
             _ => Err(ParserError::UnexpectedToken {
                 expected: TokenTypeOption::One(TokenType::Constant),
                 actual: token.kind(),
@@ -328,12 +327,7 @@ mod tests {
         let mut parser = Parser::new(tokens);
         let result = parser.parse_expression();
         assert!(result.is_ok());
-        assert_eq!(
-            result.unwrap(),
-            CmmExpression::IntegerConstant {
-                value: Token::Constant(1)
-            }
-        );
+        assert_eq!(result.unwrap(), CmmExpression::IntegerConstant { value: 1 });
     }
 
     #[test]
@@ -346,9 +340,7 @@ mod tests {
             result.unwrap(),
             CmmExpression::Unary {
                 operator: CmmUnaryOperator::Negate,
-                expression: Box::new(CmmExpression::IntegerConstant {
-                    value: Token::Constant(1)
-                })
+                expression: Box::new(CmmExpression::IntegerConstant { value: 1 })
             }
         );
     }
@@ -363,9 +355,7 @@ mod tests {
             result.unwrap(),
             CmmExpression::Unary {
                 operator: CmmUnaryOperator::Complement,
-                expression: Box::new(CmmExpression::IntegerConstant {
-                    value: Token::Constant(1)
-                })
+                expression: Box::new(CmmExpression::IntegerConstant { value: 1 })
             }
         );
     }
@@ -376,21 +366,17 @@ mod tests {
         let mut parser = Parser::new(tokens);
         let result = parser.parse_expression();
         assert!(result.is_ok());
-        assert_eq!(
-            result.unwrap(),
-            CmmExpression::IntegerConstant {
-                value: Token::Constant(1)
-            }
-        );
+        assert_eq!(result.unwrap(), CmmExpression::IntegerConstant { value: 1 });
     }
 
     #[test]
     fn test_parse_identifier_success() {
-        let tokens = vec![Token::Identifier("main".to_string())];
+        let identifier = "main".to_string();
+        let tokens = vec![Token::Identifier(identifier.clone())];
         let mut parser = Parser::new(tokens);
         let result = parser.parse_identifier();
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), Token::Identifier("main".to_string()));
+        assert_eq!(result.unwrap(), identifier);
     }
 
     #[test]
@@ -417,9 +403,7 @@ mod tests {
         assert_eq!(
             result.unwrap(),
             CmmStatement::Return {
-                expression: CmmExpression::IntegerConstant {
-                    value: Token::Constant(1)
-                }
+                expression: CmmExpression::IntegerConstant { value: 1 }
             }
         );
     }
@@ -446,9 +430,10 @@ mod tests {
 
     #[test]
     fn test_parse_function_success() {
+        let identifier = "main".to_string();
         let tokens = vec![
             Token::IntKeyword,
-            Token::Identifier("main".to_string()),
+            Token::Identifier(identifier.clone()),
             Token::OpenParen,
             Token::VoidKeyword,
             Token::CloseParen,
@@ -464,11 +449,9 @@ mod tests {
         assert_eq!(
             result.unwrap(),
             CmmFunction::Function {
-                identifier: Token::Identifier("main".to_string()),
+                identifier: identifier,
                 body: CmmStatement::Return {
-                    expression: CmmExpression::IntegerConstant {
-                        value: Token::Constant(1)
-                    }
+                    expression: CmmExpression::IntegerConstant { value: 1 }
                 }
             }
         );
@@ -476,9 +459,10 @@ mod tests {
 
     #[test]
     fn test_parse_function_failure_unexpected_sequence() {
+        let identifier = "main".to_string();
         let tokens = vec![
             Token::IntKeyword,
-            Token::Identifier("main".to_string()),
+            Token::Identifier(identifier.clone()),
             Token::OpenParen,
             Token::VoidKeyword,
             Token::CloseParen,
@@ -502,9 +486,10 @@ mod tests {
 
     #[test]
     fn test_parse_ast_success() {
+        let identifier = "main".to_string();
         let tokens = vec![
             Token::IntKeyword,
-            Token::Identifier("main".to_string()),
+            Token::Identifier(identifier.clone()),
             Token::OpenParen,
             Token::VoidKeyword,
             Token::CloseParen,
@@ -521,11 +506,9 @@ mod tests {
             result.unwrap(),
             CmmAst::Program {
                 function: CmmFunction::Function {
-                    identifier: Token::Identifier("main".to_string()),
+                    identifier,
                     body: CmmStatement::Return {
-                        expression: CmmExpression::IntegerConstant {
-                            value: Token::Constant(1)
-                        }
+                        expression: CmmExpression::IntegerConstant { value: 1 }
                     }
                 }
             }
