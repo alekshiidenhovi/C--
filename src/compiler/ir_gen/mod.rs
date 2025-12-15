@@ -30,7 +30,7 @@ impl TackyEmitter {
     ///
     /// # Arguments
     ///
-    /// * `c_ast`: A reference to the C-- `Ast` to be converted.
+    /// * `cmm_ast`: A reference to the C-- `CmmAst` to be converted.
     ///
     /// # Returns
     ///
@@ -40,14 +40,14 @@ impl TackyEmitter {
         let function = match cmm_ast {
             CmmAst::Program { function } => self.convert_function(&function)?,
         };
-        Ok(TackyAst::Program(function))
+        Ok(TackyAst::Program { function })
     }
 
     /// Converts a C-- function definition into a TACKY function definition.
     ///
     /// # Arguments
     ///
-    /// * `c_function` - A reference to the C-- `FunctionDefinition` to convert.
+    /// * `cmm_function` - A reference to the C-- `CmmFunction` to convert.
     ///
     /// # Returns
     ///
@@ -80,7 +80,7 @@ impl TackyEmitter {
     ///
     /// # Arguments
     ///
-    /// * `c_statement` - A reference to the C-- `Statement` to convert.
+    /// * `cmm_statement` - A reference to the C-- `CmmStatement` to convert.
     ///
     /// # Returns
     ///
@@ -94,7 +94,7 @@ impl TackyEmitter {
             CmmStatement::Return { expression } => {
                 let mut tacky_instructions = Vec::new();
                 let tacky_value = self.emit_tacky(expression, &mut tacky_instructions)?;
-                tacky_instructions.push(TackyInstruction::Return(tacky_value));
+                tacky_instructions.push(TackyInstruction::Return { value: tacky_value });
                 Ok(tacky_instructions)
             }
         }
@@ -106,7 +106,7 @@ impl TackyEmitter {
     ///
     /// # Arguments
     ///
-    /// * `c_expression` - A reference to the C-- `Expression` to convert.
+    /// * `cmm_expression` - A reference to the C-- `Expression` to convert.
     /// * `tacky_instructions` - A mutable reference to the vector of `TackyInstruction`s to append the generated instructions to.
     ///
     /// # Returns
@@ -148,7 +148,7 @@ impl TackyEmitter {
     ///
     /// # Arguments
     ///
-    /// * `c_operator` - A reference to the C-- `UnaryOperator` to convert.
+    /// * `cmm_operator` - A reference to the C-- `CmmUnaryOperator` to convert.
     ///
     /// # Returns
     ///
@@ -303,22 +303,26 @@ mod tests {
         let tacky_ast = tacky_emitter.convert_ast(cmm_ast);
         assert_eq!(
             tacky_ast,
-            Ok(TackyAst::Program(TackyFunction::Function {
-                identifier,
-                instructions: vec![
-                    TackyInstruction::Unary {
-                        operator: TackyUnaryOperator::Complement,
-                        source: TackyValue::Constant(1),
-                        destination: TackyValue::Variable(String::from("tmp.0")),
-                    },
-                    TackyInstruction::Unary {
-                        operator: TackyUnaryOperator::Negate,
-                        source: TackyValue::Variable(String::from("tmp.0")),
-                        destination: TackyValue::Variable(String::from("tmp.1")),
-                    },
-                    TackyInstruction::Return(TackyValue::Variable(String::from("tmp.1"))),
-                ]
-            }))
+            Ok(TackyAst::Program {
+                function: TackyFunction::Function {
+                    identifier,
+                    instructions: vec![
+                        TackyInstruction::Unary {
+                            operator: TackyUnaryOperator::Complement,
+                            source: TackyValue::Constant(1),
+                            destination: TackyValue::Variable(String::from("tmp.0")),
+                        },
+                        TackyInstruction::Unary {
+                            operator: TackyUnaryOperator::Negate,
+                            source: TackyValue::Variable(String::from("tmp.0")),
+                            destination: TackyValue::Variable(String::from("tmp.1")),
+                        },
+                        TackyInstruction::Return {
+                            value: TackyValue::Variable(String::from("tmp.1"))
+                        },
+                    ]
+                }
+            })
         );
     }
 }

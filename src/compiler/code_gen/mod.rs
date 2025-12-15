@@ -29,10 +29,9 @@ use std::collections::HashMap;
 /// # use cmm::compiler::code_gen::convert_ast;
 /// # use cmm::compiler::code_gen::assembly_ast::{AssemblyAst, AssemblyFunction, AssemblyInstruction, AssemblyUnaryOperand, AssemblyUnaryOperation, AssemblyRegister};
 /// # use cmm::compiler::code_gen::errors::CodegenError;
-/// # use std::collections::LinkedList;
 /// let identifier = "main".to_string();
 /// let temp_name = "tmp.0".to_string();
-/// let tacky_ast = TackyAst::Program(TackyFunction::Function {
+/// let tacky_ast = TackyAst::Program{ function: TackyFunction::Function {
 ///     identifier: identifier.clone(),
 ///     instructions: vec![
 ///         TackyInstruction::Unary {
@@ -40,9 +39,9 @@ use std::collections::HashMap;
 ///             source: TackyValue::Constant(1),
 ///             destination: TackyValue::Variable(temp_name.clone()),
 ///         },
-///         TackyInstruction::Return(TackyValue::Variable(temp_name)),
+///         TackyInstruction::Return { value: TackyValue::Variable(temp_name) },
 ///     ],
-/// });
+/// } };
 /// let assembly_ast = convert_ast(tacky_ast)?;
 /// assert_eq!(assembly_ast, AssemblyAst::Program(AssemblyFunction::Function {
 ///     identifier,
@@ -67,7 +66,7 @@ use std::collections::HashMap;
 /// ```
 pub fn convert_ast(tacky_ast: TackyAst) -> Result<AssemblyAst, CodegenError> {
     let mut asm_ast = match tacky_ast {
-        TackyAst::Program(c_function) => AssemblyAst::Program(convert_function(&c_function)?),
+        TackyAst::Program { function } => AssemblyAst::Program(convert_function(&function)?),
     };
     let stack_offset = replace_pseudo_registers(&mut asm_ast);
     let asm_ast = fixup_instructions(asm_ast, stack_offset);
@@ -272,9 +271,9 @@ fn convert_instructions(tacky_instructions: &Vec<TackyInstruction>) -> Vec<Assem
     let mut asm_instructions = vec![];
     for tacky_instruction in tacky_instructions.iter() {
         match tacky_instruction {
-            TackyInstruction::Return(tacky_value) => {
+            TackyInstruction::Return { value } => {
                 let mov_instruction = AssemblyInstruction::Mov {
-                    source: convert_operand(&tacky_value),
+                    source: convert_operand(&value),
                     destination: AssemblyUnaryOperand::Register(AssemblyRegister::AX),
                 };
                 let ret_instruction = AssemblyInstruction::Ret;
@@ -329,7 +328,9 @@ mod tests {
                 source: TackyValue::Constant(1),
                 destination: TackyValue::Variable(identifier.clone()),
             },
-            TackyInstruction::Return(TackyValue::Variable(identifier.clone())),
+            TackyInstruction::Return {
+                value: TackyValue::Variable(identifier.clone()),
+            },
         ];
         let result = convert_instructions(&tacky_instructions);
         assert_eq!(

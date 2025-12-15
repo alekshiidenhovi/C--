@@ -2,7 +2,7 @@
 #[derive(Debug, Clone, PartialEq)]
 pub enum TackyAst {
     /// A complete TACKY function definition.
-    Program(TackyFunction),
+    Program { function: TackyFunction },
 }
 
 /// Represents a TACKY function definition.
@@ -21,7 +21,7 @@ pub enum TackyFunction {
 #[derive(Debug, Clone, PartialEq)]
 pub enum TackyInstruction {
     /// An instruction that returns a value from the function.
-    Return(TackyValue),
+    Return { value: TackyValue },
     /// An instruction that performs a unary operation on a value.
     Unary {
         /// The unary operator to be applied.
