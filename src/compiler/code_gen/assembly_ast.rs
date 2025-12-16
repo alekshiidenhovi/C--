@@ -23,13 +23,13 @@ pub enum AssemblyInstruction {
         source: AssemblyUnaryOperand,
         destination: AssemblyUnaryOperand,
     },
+    /// Unary operation: applies a unary operator to an operand.
     Unary {
         op: AssemblyUnaryOperation,
         operand: AssemblyUnaryOperand,
     },
-    AllocateStack {
-        stack_offset: i32,
-    },
+    /// Allocate stack instruction: allocates a specified amount of stack space.
+    AllocateStack { stack_offset: i32 },
     /// Return instruction: signifies the end of a function execution.
     Ret,
 }
@@ -57,6 +57,8 @@ pub enum AssemblyUnaryOperand {
 /// Represents a CPU register.
 #[derive(Debug, PartialEq, Clone)]
 pub enum AssemblyRegister {
+    /// AX CPU register
     AX,
+    /// R10 scratch register
     R10,
 }
