@@ -212,6 +212,22 @@ fn allocate_stack_space(
     instructions
 }
 
+/// Fixes up memory-to-memory `Mov` operations by using a scratch register.
+///
+/// When a `Mov` instruction involves two memory operands, it's not directly supported
+/// by many architectures. This function replaces such an operation with two
+/// instructions: the first moves the source memory to a scratch register (R10),
+/// and the second moves the scratch register to the destination memory.
+///
+/// # Arguments
+///
+/// * `asm_instruction`: The `AssemblyInstruction` to potentially fix up.
+///
+/// # Returns
+///
+/// A `Vec<AssemblyInstruction>` containing the original instruction if no fixup
+/// was needed, or the sequence of two instructions if a memory-to-memory `Mov`
+/// was encountered.
 fn fixup_memory_to_memory_operation(
     asm_instruction: &AssemblyInstruction,
 ) -> Vec<AssemblyInstruction> {
@@ -304,6 +320,15 @@ fn convert_instructions(tacky_instructions: &Vec<TackyInstruction>) -> Vec<Assem
     asm_instructions
 }
 
+/// Converts a `TackyUnaryOperator` to its corresponding `AssemblyUnaryOperation`.
+///
+/// # Arguments
+///
+/// * `tacky_operator`: A reference to a `TackyUnaryOperator` enum value.
+///
+/// # Returns
+///
+/// An `AssemblyUnaryOperation` enum value that represents the equivalent operation.
 fn convert_operator(tacky_operator: &TackyUnaryOperator) -> AssemblyUnaryOperation {
     match tacky_operator {
         TackyUnaryOperator::Negate => AssemblyUnaryOperation::Neg,
@@ -311,6 +336,15 @@ fn convert_operator(tacky_operator: &TackyUnaryOperator) -> AssemblyUnaryOperati
     }
 }
 
+/// Converts a `TackyValue` to its corresponding `AssemblyUnaryOperand`.
+///
+/// # Arguments
+///
+/// * `tacky_operand`: The TackyValue to convert.
+///
+/// # Returns
+///
+/// An AssemblyUnaryOperand representing the converted value.
 fn convert_operand(tacky_operand: &TackyValue) -> AssemblyUnaryOperand {
     match tacky_operand {
         TackyValue::Constant(value) => AssemblyUnaryOperand::Imm(*value),
