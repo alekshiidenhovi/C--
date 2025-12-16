@@ -6,7 +6,7 @@ use clap::Parser;
 use std::path::{Path, PathBuf};
 
 #[derive(Parser)]
-#[command(version, about, long_about = "CMM Compiler Driver")]
+#[command(version, about, long_about = "C-- Compiler Driver")]
 struct CliArgs {
     /// Input file to process.
     c_file_path: PathBuf,
