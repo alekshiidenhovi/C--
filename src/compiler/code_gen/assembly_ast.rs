@@ -37,7 +37,9 @@ pub enum AssemblyInstruction {
 /// Represents an unary operation.
 #[derive(Debug, PartialEq, Clone)]
 pub enum AssemblyUnaryOperation {
+    /// Negation instruction
     Neg,
+    /// Bitwise NOT instruction
     Not,
 }
 
