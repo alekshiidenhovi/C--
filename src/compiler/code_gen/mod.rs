@@ -24,7 +24,6 @@ use std::collections::HashMap;
 /// # Examples
 ///
 /// ```
-/// # use cmm::compiler::tokens::Token;
 /// # use cmm::compiler::ir_gen::tacky_ast::{TackyFunction, TackyAst, TackyInstruction, TackyUnaryOperator, TackyValue};
 /// # use cmm::compiler::code_gen::convert_ast;
 /// # use cmm::compiler::code_gen::assembly_ast::{AssemblyAst, AssemblyFunction, AssemblyInstruction, AssemblyUnaryOperand, AssemblyUnaryOperation, AssemblyRegister};
