@@ -69,7 +69,7 @@ pub fn run_gcc_linker(assembly_file_path: &Path, executable_path: &Path) -> anyh
         .context("Failed to execute GCC Linker. Is it installed and in your PATH?")?;
 
     if status.success() {
-        println!("Linker file created at: {}", executable_path.display());
+        println!("Executable file created at: {}", executable_path.display());
         Ok(())
     } else {
         Err(anyhow::anyhow!(
