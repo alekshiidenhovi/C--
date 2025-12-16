@@ -61,45 +61,41 @@ fn main() -> anyhow::Result<()> {
 
     let (compiler_input_path, compiler_output_path) =
         validation::validate_compiler_paths(&preprocessor_output_path, None)?;
-    let compilation_result =
-        run_cmm_compiler(&compiler_input_path, &compiler_output_path, &process_until);
+    let cmm_source_code = std::fs::read_to_string(compiler_input_path)?;
+    let compilation_result = run_cmm_compiler(&cmm_source_code, &process_until);
     std::fs::remove_file(&preprocessor_output_path)?;
 
     match compilation_result {
-        Ok(CompilerResult::Lexer(tokens)) => {
-            println!("Lexer output: {:?}", tokens);
-            return Ok(());
-        }
-        Ok(CompilerResult::Parser(ast)) => {
-            println!("Parser output: {:?}", ast);
-            return Ok(());
-        }
-        Ok(CompilerResult::Tacky(tacky_ast)) => {
-            println!("TACKY IR output: {:?}", tacky_ast);
-            return Ok(());
-        }
-        Ok(CompilerResult::Codegen(assembly_ast)) => {
-            println!("Codegen output: {:?}", assembly_ast);
-            return Ok(());
-        }
-        Ok(CompilerResult::Final(_)) => {}
-        Err(e) => {
-            return Err(e);
-        }
-    }
-
-    if args.stop_after_cmm_compiler {
-        match compilation_result {
-            Ok(CompilerResult::Final(assembly_code)) => {
-                println!("Assembly code output: {:?}", assembly_code);
+        Ok(ref inner_result) => match inner_result {
+            CompilerResult::Lexer(tokens) => {
+                println!("Lexer output: {:?}", tokens);
                 return Ok(());
             }
-            _ => {
-                return Err(anyhow::anyhow!(
-                    "Assembly code output not available! Something went wrong during compilation."
-                ));
+            CompilerResult::Parser(ast) => {
+                println!("Parser output: {:?}", ast);
+                return Ok(());
             }
-        }
+            CompilerResult::Tacky(tacky_ast) => {
+                println!("TACKY IR output: {:?}", tacky_ast);
+                return Ok(());
+            }
+            CompilerResult::Codegen(assembly_ast) => {
+                println!("Codegen output: {:?}", assembly_ast);
+                return Ok(());
+            }
+            CompilerResult::Final(assembly_code) => {
+                std::fs::write(&compiler_output_path, assembly_code)?;
+                println!(
+                    "Assembly code created at: {}",
+                    compiler_output_path.display()
+                );
+                if args.stop_after_cmm_compiler {
+                    println!("Assembly code output: {:?}", assembly_code);
+                    return Ok(());
+                }
+            }
+        },
+        Err(e) => return Err(e),
     }
 
     let (linker_input_path, linker_output_path) =
