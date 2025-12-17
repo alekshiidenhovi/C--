@@ -16,6 +16,10 @@ pub enum Token {
     Tilde,
     Hyphen,
     DoubleHyphen,
+    Plus,
+    Asterisk,
+    ForwardSlash,
+    Percent,
 }
 
 impl Token {
@@ -55,6 +59,10 @@ impl Token {
             Token::Tilde => TokenType::Tilde,
             Token::Hyphen => TokenType::Hyphen,
             Token::DoubleHyphen => TokenType::DoubleHyphen,
+            Token::Plus => TokenType::Plus,
+            Token::Asterisk => TokenType::Asterisk,
+            Token::ForwardSlash => TokenType::ForwardSlash,
+            Token::Percent => TokenType::Percent,
         }
     }
 }
@@ -75,6 +83,10 @@ impl fmt::Display for Token {
             Token::Tilde => write!(f, "Tilde"),
             Token::Hyphen => write!(f, "Hyphen"),
             Token::DoubleHyphen => write!(f, "DoubleHyphen"),
+            Token::Plus => write!(f, "Plus"),
+            Token::Asterisk => write!(f, "Asterisk"),
+            Token::ForwardSlash => write!(f, "ForwardSlash"),
+            Token::Percent => write!(f, "Percent"),
         }
     }
 }
@@ -95,6 +107,10 @@ pub enum TokenType {
     Tilde,
     Hyphen,
     DoubleHyphen,
+    Plus,
+    Asterisk,
+    ForwardSlash,
+    Percent,
 }
 
 impl fmt::Display for TokenType {
@@ -113,6 +129,10 @@ impl fmt::Display for TokenType {
             TokenType::Tilde => write!(f, "Tilde"),
             TokenType::Hyphen => write!(f, "Hyphen"),
             TokenType::DoubleHyphen => write!(f, "DoubleHyphen"),
+            TokenType::Plus => write!(f, "Plus"),
+            TokenType::Asterisk => write!(f, "Asterisk"),
+            TokenType::ForwardSlash => write!(f, "ForwardSlash"),
+            TokenType::Percent => write!(f, "Percent"),
         }
     }
 }

@@ -68,6 +68,10 @@ pub fn tokenize(input_str: &str) -> Vec<Token> {
         Box::new(create_character_parser('{', Token::OpenBrace)),
         Box::new(create_character_parser('}', Token::CloseBrace)),
         Box::new(create_character_parser(';', Token::Semicolon)),
+        Box::new(create_character_parser('+', Token::Plus)),
+        Box::new(create_character_parser('*', Token::Asterisk)),
+        Box::new(create_character_parser('/', Token::ForwardSlash)),
+        Box::new(create_character_parser('%', Token::Percent)),
     ];
     loop {
         string_stream = string_stream.trim_start().to_string();
