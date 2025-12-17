@@ -18,7 +18,7 @@ type LexerParseResult<T> = Result<(String, T), LexerError>;
 /// A type alias for a function that parses a string slice into a `LexerParseResult<Token>`.
 ///
 /// This is commonly used for defining lexer functions that consume input and produce tokens.
-type LexerParser = fn(&str) -> LexerParseResult<Token>;
+type LexerParser = Box<dyn Fn(&str) -> LexerParseResult<Token>>;
 
 /// Tokenizes an input string into a vector of `Token`s.
 ///
@@ -58,16 +58,16 @@ pub fn tokenize(input_str: &str) -> Vec<Token> {
     let mut string_stream = input_str.to_string();
     let mut token_vec = Vec::new();
     let parsers: Vec<LexerParser> = vec![
-        parse_identifier_or_keyword,
-        parse_double_hyphen,
-        parse_hyphen,
-        parse_tilde,
-        parse_constant,
-        parse_semicolon,
-        parse_open_brace,
-        parse_close_brace,
-        parse_open_paren,
-        parse_close_paren,
+        Box::new(parse_identifier_or_keyword),
+        Box::new(parse_double_hyphen),
+        Box::new(parse_constant),
+        Box::new(create_character_parser('-', Token::Hyphen)),
+        Box::new(create_character_parser('~', Token::Tilde)),
+        Box::new(create_character_parser('(', Token::OpenParen)),
+        Box::new(create_character_parser(')', Token::CloseParen)),
+        Box::new(create_character_parser('{', Token::OpenBrace)),
+        Box::new(create_character_parser('}', Token::CloseBrace)),
+        Box::new(create_character_parser(';', Token::Semicolon)),
     ];
     loop {
         string_stream = string_stream.trim_start().to_string();
@@ -83,42 +83,6 @@ pub fn tokenize(input_str: &str) -> Vec<Token> {
         }
     }
     token_vec
-}
-
-/// Attempts to parse a tilde from the input string.
-///
-/// # Arguments
-///
-/// * `input_str`: The input string to parse.
-///
-/// # Returns
-///
-/// On successful parsing, return a tuple of remaining input string and the parsed tilde.
-/// On failure, returns a non-matching pattern error.
-fn parse_tilde(input_str: &str) -> LexerParseResult<Token> {
-    let parsed_char = parse_character(input_str, '~');
-    match parsed_char {
-        Ok((remaining_str, _)) => Ok((remaining_str, Token::Tilde)),
-        Err(err) => Err(err),
-    }
-}
-
-/// Attempts to parse a hyphen from the input string.
-///
-/// # Arguments
-///
-/// * `input_str`: The input string to parse.
-///
-/// # Returns
-///
-/// On successful parsing, return a tuple of remaining input string and the parsed hyphen.
-/// On failure, returns a non-matching pattern error.
-fn parse_hyphen(input_str: &str) -> LexerParseResult<Token> {
-    let parsed_char = parse_character(input_str, '-');
-    match parsed_char {
-        Ok((remaining_str, _)) => Ok((remaining_str, Token::Hyphen)),
-        Err(err) => Err(err),
-    }
 }
 
 /// Attempts to parse a double hyphen from the input string.
@@ -143,96 +107,6 @@ fn parse_double_hyphen(input_str: &str) -> LexerParseResult<Token> {
         None => Err(LexerError::NonmatchingPattern {
             found: input_str.to_string(),
         }),
-    }
-}
-
-/// Attempts to parse a semicolon from the input string.
-///
-/// # Arguments
-///
-/// * `input_str`: The input string to parse.
-///
-/// # Returns
-///
-/// On successful parsing, return a tuple of remaining input string and the parsed semicolon.
-/// On failure, returns a non-matching pattern error.
-fn parse_semicolon(input_str: &str) -> LexerParseResult<Token> {
-    let parsed_char = parse_character(input_str, ';');
-    match parsed_char {
-        Ok((remaining_str, _)) => Ok((remaining_str, Token::Semicolon)),
-        Err(err) => Err(err),
-    }
-}
-
-/// Attempts to parse an open brace from the input string.
-///
-/// # Arguments
-///
-/// * `input_str`: The input string to parse.
-///
-/// # Returns
-///
-/// On successful parsing, return a tuple of remaining input string and the parsed open brace.
-/// On failure, returns a non-matching pattern error.
-fn parse_open_brace(input_str: &str) -> LexerParseResult<Token> {
-    let parsed_char = parse_character(input_str, '{');
-    match parsed_char {
-        Ok((remaining_str, _)) => Ok((remaining_str, Token::OpenBrace)),
-        Err(err) => Err(err),
-    }
-}
-
-/// Attempts to parse a closed brace from the input string.
-///
-/// # Arguments
-///
-/// * `input_str`: The input string to parse.
-///
-/// # Returns
-///
-/// On successful parsing, return a tuple of remaining input string and the parsed closed brace.
-/// On failure, returns a non-matching pattern error.
-fn parse_close_brace(input_str: &str) -> LexerParseResult<Token> {
-    let parsed_char = parse_character(input_str, '}');
-    match parsed_char {
-        Ok((remaining_str, _)) => Ok((remaining_str, Token::CloseBrace)),
-        Err(err) => Err(err),
-    }
-}
-
-/// Attempts to parse an open parenthesis from the input string.
-///
-/// # Arguments
-///
-/// * `input_str`: The input string to parse.
-///
-/// # Returns
-///
-/// On successful parsing, return a tuple of remaining input string and the parsed open parenthesis.
-/// On failure, returns a non-matching pattern error.
-fn parse_open_paren(input_str: &str) -> LexerParseResult<Token> {
-    let parsed_char = parse_character(input_str, '(');
-    match parsed_char {
-        Ok((remaining_str, _)) => Ok((remaining_str, Token::OpenParen)),
-        Err(err) => Err(err),
-    }
-}
-
-/// Attempts to parse a closed parenthesis from the input string.
-///
-/// # Arguments
-///
-/// * `input_str`: The input string to parse.
-///
-/// # Returns
-///
-/// On successful parsing, return a tuple of remaining input string and the parsed closed parenthesis.
-/// On failure, returns a non-matching pattern error.
-fn parse_close_paren(input_str: &str) -> LexerParseResult<Token> {
-    let parsed_char = parse_character(input_str, ')');
-    match parsed_char {
-        Ok((remaining_str, _)) => Ok((remaining_str, Token::CloseParen)),
-        Err(err) => Err(err),
     }
 }
 
@@ -303,24 +177,27 @@ fn parse_constant(input_str: &str) -> LexerParseResult<Token> {
 ///
 /// * `input_str`: The input string to parse.
 /// * `target_char`: The character to match.
+/// * `parsed_token`: The token to return if the character is matched
 ///
 /// # Returns
 ///
 /// On successful parsing, return a tuple of remaining input string and the parsed character.
 /// On failure, returns an unexpected character error.
-fn parse_character(input_str: &str, target_char: char) -> LexerParseResult<char> {
-    if input_str.is_empty() {
-        return Err(LexerError::EmptyInputString);
-    }
-    let (next_char, rest) = split_first_char(&input_str).unwrap();
-    if next_char == target_char {
-        Ok((rest.to_string(), next_char))
-    } else {
-        Err(LexerError::UnexpectedCharacter {
-            found: next_char,
-            expected: target_char,
-        })
-    }
+fn create_character_parser(target_char: char, parsed_token: Token) -> LexerParser {
+    Box::new(move |input_str: &str| {
+        if input_str.is_empty() {
+            return Err(LexerError::EmptyInputString);
+        }
+        let (next_char, rest) = split_first_char(&input_str).unwrap();
+        if next_char == target_char {
+            Ok((rest.to_string(), parsed_token.clone()))
+        } else {
+            Err(LexerError::UnexpectedCharacter {
+                found: next_char,
+                expected: target_char,
+            })
+        }
+    })
 }
 
 fn split_first_char(s: &str) -> Option<(char, &str)> {
@@ -371,15 +248,20 @@ mod tests {
     #[test]
     fn parse_character_matching_character() {
         let input = "abc";
-        let result = parse_character(input, 'a');
+        let parser = create_character_parser('a', Token::Identifier("a".to_string()));
+        let result = parser(input);
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), (String::from("bc"), 'a'));
+        assert_eq!(
+            result.unwrap(),
+            (String::from("bc"), Token::Identifier("a".to_string()))
+        );
     }
 
     #[test]
     fn parse_character_nonmatching_character() {
         let input = "abc";
-        let result = parse_character(input, 'b');
+        let parser = create_character_parser('b', Token::Identifier("b".to_string()));
+        let result = parser(input);
         assert!(result.is_err());
         assert_eq!(
             result.unwrap_err(),
@@ -391,27 +273,11 @@ mod tests {
     }
 
     #[test]
-    fn parse_valid_hyphen() {
-        let input = "-";
-        let result = parse_hyphen(input);
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), (String::from(""), Token::Hyphen));
-    }
-
-    #[test]
     fn parse_valid_double_hyphen() {
         let input = "--";
         let result = parse_double_hyphen(input);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), (String::from(""), Token::DoubleHyphen));
-    }
-
-    #[test]
-    fn parse_valid_tilde() {
-        let input = "~";
-        let result = parse_tilde(input);
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), (String::from(""), Token::Tilde));
     }
 
     #[test]
