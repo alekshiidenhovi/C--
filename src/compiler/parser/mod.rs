@@ -1,7 +1,7 @@
 pub mod cmm_ast;
 pub mod errors;
 
-use crate::compiler::tokens::{Token, TokenType};
+use crate::compiler::lexer::tokens::{Token, TokenType};
 use cmm_ast::{CmmAst, CmmExpression, CmmFunction, CmmStatement, CmmUnaryOperator};
 use errors::{ParserError, TokenTypeOption};
 
@@ -43,7 +43,7 @@ impl Parser {
     /// # Examples
     ///
     /// ```
-    /// # use cmm::compiler::tokens::Token;
+    /// # use cmm::compiler::lexer::tokens::Token;
     /// # use cmm::compiler::parser::cmm_ast::{CmmAst, CmmFunction, CmmStatement, CmmExpression, CmmUnaryOperator};
     /// # use cmm::compiler::parser::Parser;
     /// # use cmm::compiler::parser::errors::ParserError;

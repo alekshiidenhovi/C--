@@ -1,4 +1,4 @@
-use crate::compiler::tokens::TokenType;
+use crate::compiler::lexer::tokens::TokenType;
 use std::error::Error;
 use std::fmt;
 

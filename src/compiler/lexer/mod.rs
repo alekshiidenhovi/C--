@@ -1,9 +1,10 @@
 pub mod errors;
+pub mod tokens;
 
-use crate::compiler::tokens::Token;
 use errors::LexerError;
 use regex::Regex;
 use std::sync::LazyLock;
+use tokens::Token;
 
 /// Represents the result of a parsing operation, which can either be a success
 /// containing the remaining unparsed string and the parsed value, or a `LexerError` after a
@@ -37,7 +38,7 @@ type LexerParser = fn(&str) -> LexerParseResult<Token>;
 ///
 /// ```
 /// # use cmm::compiler::lexer::tokenize;
-/// # use cmm::compiler::tokens::Token;
+/// # use cmm::compiler::lexer::tokens::Token;
 ///
 /// let tokens = tokenize("int main(void) { return 1; }");
 /// assert_eq!(tokens, vec![

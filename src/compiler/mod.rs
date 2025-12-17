@@ -3,9 +3,8 @@ pub mod code_gen;
 pub mod ir_gen;
 pub mod lexer;
 pub mod parser;
-pub mod tokens;
 
-use crate::compiler::tokens::Token;
+use crate::compiler::lexer::tokens::Token;
 use parser::Parser;
 
 /// Represents the different stages a C-- compilation can proceed to.
