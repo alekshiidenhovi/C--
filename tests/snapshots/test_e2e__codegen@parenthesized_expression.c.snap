@@ -1,0 +1,26 @@
+---
+source: tests/test_e2e.rs
+expression: asm_ast
+input_file: tests/test_programs/parenthesized_expression.c
+---
+Codegen(
+    Program {
+        function: Function {
+            identifier: "main",
+            instructions: [
+                AllocateStack {
+                    stack_offset: 0,
+                },
+                Mov {
+                    source: Imm(
+                        1,
+                    ),
+                    destination: Register(
+                        AX,
+                    ),
+                },
+                Ret,
+            ],
+        },
+    },
+)

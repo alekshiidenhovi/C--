@@ -11,6 +11,7 @@ use parser::Parser;
 /// Represents the different stages a C-- compilation can proceed to.
 ///
 /// This enum allows for early termination of the compilation process after a specific stage.
+#[derive(Debug)]
 pub enum Stage {
     /// Stop after the lexing stage.
     Lex,
@@ -26,6 +27,7 @@ pub enum Stage {
 ///
 /// Each variant encapsulates the successful result of a specific phase in the compilation process,
 /// from lexical analysis to code emission.
+#[derive(Debug)]
 pub enum CompilerResult {
     /// The result of the lexer, a vector of tokens.
     Lexer(Vec<Token>),

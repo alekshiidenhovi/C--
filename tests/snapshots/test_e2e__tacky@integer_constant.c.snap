@@ -1,0 +1,19 @@
+---
+source: tests/test_e2e.rs
+expression: tacky_ast
+input_file: tests/test_programs/integer_constant.c
+---
+Tacky(
+    Program {
+        function: Function {
+            identifier: "main",
+            instructions: [
+                Return {
+                    value: Constant(
+                        1,
+                    ),
+                },
+            ],
+        },
+    },
+)
