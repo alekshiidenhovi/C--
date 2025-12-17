@@ -29,23 +29,29 @@ use std::collections::HashMap;
 /// # use cmm::compiler::code_gen::assembly_ast::{AssemblyAst, AssemblyFunction, AssemblyInstruction, AssemblyUnaryOperand, AssemblyUnaryOperation, AssemblyRegister};
 /// # use cmm::compiler::code_gen::errors::CodegenError;
 /// let identifier = "main".to_string();
-/// let temp_name = "tmp.0".to_string();
+/// let temp_0_name = "tmp.0".to_string();
+/// let temp_1_name = "tmp.1".to_string();
 /// let tacky_ast = TackyAst::Program{ function: TackyFunction::Function {
 ///     identifier: identifier.clone(),
 ///     instructions: vec![
 ///         TackyInstruction::Unary {
 ///             operator: TackyUnaryOperator::Negate,
 ///             source: TackyValue::Constant(1),
-///             destination: TackyValue::Variable(temp_name.clone()),
+///             destination: TackyValue::Variable(temp_0_name.clone()),
 ///         },
-///         TackyInstruction::Return { value: TackyValue::Variable(temp_name) },
+///         TackyInstruction::Unary {
+///             operator: TackyUnaryOperator::Complement,
+///             source: TackyValue::Variable(temp_0_name),
+///             destination: TackyValue::Variable(temp_1_name.clone()),
+///         },
+///         TackyInstruction::Return { value: TackyValue::Variable(temp_1_name) },
 ///     ],
 /// } };
 /// let assembly_ast = convert_ast(tacky_ast)?;
 /// assert_eq!(assembly_ast, AssemblyAst::Program{ function: AssemblyFunction::Function {
 ///     identifier,
 ///     instructions: vec![
-///         AssemblyInstruction::AllocateStack { stack_offset: -4 },
+///         AssemblyInstruction::AllocateStack { stack_offset: -8 },
 ///         AssemblyInstruction::Mov {
 ///             source: AssemblyUnaryOperand::Imm(1),
 ///             destination: AssemblyUnaryOperand::Stack(-4),
@@ -56,6 +62,18 @@ use std::collections::HashMap;
 ///         },
 ///         AssemblyInstruction::Mov {
 ///             source: AssemblyUnaryOperand::Stack(-4),
+///             destination: AssemblyUnaryOperand::Register(AssemblyRegister::R10),
+///         },
+///         AssemblyInstruction::Mov {
+///             source: AssemblyUnaryOperand::Register(AssemblyRegister::R10),
+///             destination: AssemblyUnaryOperand::Stack(-8),
+///         },
+///         AssemblyInstruction::Unary {
+///             op: AssemblyUnaryOperation::Not,
+///             operand: AssemblyUnaryOperand::Stack(-8),
+///         },
+///         AssemblyInstruction::Mov {
+///             source: AssemblyUnaryOperand::Stack(-8),
 ///             destination: AssemblyUnaryOperand::Register(AssemblyRegister::AX),
 ///         },
 ///         AssemblyInstruction::Ret,
