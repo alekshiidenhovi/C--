@@ -18,8 +18,7 @@ use std::collections::HashMap;
 ///
 /// # Returns
 ///
-/// A `Result` containing the generated `AssemblyAst` on success,
-/// or a `CodegenError` on failure.
+/// A `Result` containing the generated `AssemblyAst` on success, or a `CodegenError` on failure.
 ///
 /// # Examples
 ///
@@ -90,186 +89,6 @@ pub fn convert_ast(tacky_ast: TackyAst) -> Result<AssemblyAst, CodegenError> {
     let stack_offset = replace_pseudo_registers(&mut asm_ast);
     let asm_ast = fixup_instructions(asm_ast, stack_offset);
     Ok(asm_ast)
-}
-
-/// Replaces pseudo registers with actual registers in the assembly AST.
-///
-/// # Arguments
-///
-/// * `asm_ast` - The assembly AST to be modified.
-///
-/// # Returns
-///
-/// The final stack offset after replacing pseudo registers.
-fn replace_pseudo_registers(asm_ast: &mut AssemblyAst) -> i32 {
-    let mut identifier_offsets: HashMap<String, i32> = HashMap::new();
-    let mut offset_counter = 0;
-    match asm_ast {
-        AssemblyAst::Program { function } => match function {
-            AssemblyFunction::Function {
-                identifier: _,
-                instructions,
-            } => {
-                for instruction in instructions.iter_mut() {
-                    match instruction {
-                        AssemblyInstruction::Mov {
-                            source,
-                            destination,
-                        } => {
-                            convert_pseudo_register(
-                                source,
-                                &mut identifier_offsets,
-                                &mut offset_counter,
-                            );
-                            convert_pseudo_register(
-                                destination,
-                                &mut identifier_offsets,
-                                &mut offset_counter,
-                            );
-                        }
-                        AssemblyInstruction::Unary { op: _, operand } => {
-                            convert_pseudo_register(
-                                operand,
-                                &mut identifier_offsets,
-                                &mut offset_counter,
-                            );
-                        }
-                        _ => {}
-                    }
-                }
-            }
-        },
-    };
-    offset_counter
-}
-
-/// Converts a pseudo-register operand to a stack operand.
-///
-/// This function takes an `Operand` and attempts to convert it from a `Pseudo` variant
-/// (representing an identifier) to a `Stack` variant (representing a memory offset).
-///
-/// # Arguments
-///
-/// * `operand`: A mutable reference to the `Operand` to be converted. If it's a `Pseudo`
-///   variant, it will be modified in place to become a `Stack` variant.
-/// * `identifier_offsets`: A mutable reference to a `HashMap` that maps identifier strings
-///   to their allocated stack offsets (`i32`).
-/// * `offset_counter`: A mutable reference to an `i32` that acts as a counter for
-///   allocating new stack offsets. It is decremented for each new identifier.
-///
-/// # Returns
-///
-/// This function does not return a value, but it modifies the `operand` argument in place.
-fn convert_pseudo_register(
-    operand: &mut AssemblyUnaryOperand,
-    identifier_offsets: &mut HashMap<String, i32>,
-    offset_counter: &mut i32,
-) -> () {
-    match operand {
-        AssemblyUnaryOperand::Pseudo(identifier) => {
-            if let Some(offset) = identifier_offsets.get(identifier) {
-                *operand = AssemblyUnaryOperand::Stack(*offset);
-                return;
-            }
-            *offset_counter -= constants::STACK_ADDRESS_OFFSET;
-            identifier_offsets.insert(identifier.clone(), *offset_counter);
-            *operand = AssemblyUnaryOperand::Stack(*offset_counter);
-        }
-        _ => {}
-    }
-}
-
-/// Fixes up instructions by allocating stack space and resolving memory-to-memory operations.
-///
-/// # Arguments
-///
-/// * `asm_ast`: The `AssemblyAst` to process.
-/// * `stack_offset`: The total stack space in bytes to allocate for the function.
-///
-/// # Returns
-///
-/// A new `AssemblyAst` with the instructions fixed up.
-fn fixup_instructions(asm_ast: AssemblyAst, stack_offset: i32) -> AssemblyAst {
-    match asm_ast {
-        AssemblyAst::Program { function } => match function {
-            AssemblyFunction::Function {
-                identifier,
-                instructions,
-            } => {
-                let instructions = allocate_stack_space(instructions.clone(), stack_offset.clone());
-                let mut fixed_instructions = vec![];
-                for instruction in instructions.iter() {
-                    fixed_instructions.append(&mut fixup_memory_to_memory_operation(instruction));
-                }
-                AssemblyAst::Program {
-                    function: AssemblyFunction::Function {
-                        identifier: identifier.to_string(),
-                        instructions: fixed_instructions,
-                    },
-                }
-            }
-        },
-    }
-}
-
-/// Inserts an instruction to allocate stack space at the beginning of the instruction list.
-///
-/// # Arguments
-///
-/// * `instructions` - The vector of instructions to modify.
-/// * `stack_offset` - The amount of stack space to allocate.
-///
-/// # Returns
-///
-/// A new vector of instructions with the `AllocateStack` instruction prepended
-fn allocate_stack_space(
-    mut instructions: Vec<AssemblyInstruction>,
-    stack_offset: i32,
-) -> Vec<AssemblyInstruction> {
-    instructions.insert(0, AssemblyInstruction::AllocateStack { stack_offset });
-    instructions
-}
-
-/// Fixes up memory-to-memory `Mov` operations by using a scratch register.
-///
-/// When a `Mov` instruction involves two memory operands, it's not directly supported
-/// by many architectures. This function replaces such an operation with two
-/// instructions: the first moves the source memory to a scratch register (R10),
-/// and the second moves the scratch register to the destination memory.
-///
-/// # Arguments
-///
-/// * `asm_instruction`: The `AssemblyInstruction` to potentially fix up.
-///
-/// # Returns
-///
-/// A `Vec<AssemblyInstruction>` containing the original instruction if no fixup
-/// was needed, or the sequence of two instructions if a memory-to-memory `Mov`
-/// was encountered.
-fn fixup_memory_to_memory_operation(
-    asm_instruction: &AssemblyInstruction,
-) -> Vec<AssemblyInstruction> {
-    let scratch_register_operand = AssemblyUnaryOperand::Register(AssemblyRegister::R10);
-    match asm_instruction {
-        AssemblyInstruction::Mov {
-            source,
-            destination,
-        } => match (source, destination) {
-            (AssemblyUnaryOperand::Stack(_), AssemblyUnaryOperand::Stack(_)) => {
-                let move1 = AssemblyInstruction::Mov {
-                    source: source.clone(),
-                    destination: scratch_register_operand.clone(),
-                };
-                let move2 = AssemblyInstruction::Mov {
-                    source: scratch_register_operand.clone(),
-                    destination: destination.clone(),
-                };
-                vec![move1, move2]
-            }
-            _ => vec![asm_instruction.clone()],
-        },
-        _ => vec![asm_instruction.clone()],
-    }
 }
 
 ///
@@ -367,6 +186,177 @@ fn convert_operand(tacky_operand: &TackyValue) -> AssemblyUnaryOperand {
     match tacky_operand {
         TackyValue::Constant(value) => AssemblyUnaryOperand::Imm(*value),
         TackyValue::Variable(name) => AssemblyUnaryOperand::Pseudo(name.clone()),
+    }
+}
+
+/// Replaces pseudo registers with actual registers in the assembly AST.
+///
+/// # Arguments
+///
+/// * `asm_ast` - The assembly AST to be modified.
+///
+/// # Returns
+///
+/// The final stack offset after replacing pseudo registers.
+fn replace_pseudo_registers(asm_ast: &mut AssemblyAst) -> i32 {
+    let mut identifier_offsets: HashMap<String, i32> = HashMap::new();
+    let mut offset_counter = 0;
+    match asm_ast {
+        AssemblyAst::Program { function } => match function {
+            AssemblyFunction::Function {
+                identifier: _,
+                instructions,
+            } => {
+                for instruction in instructions.iter_mut() {
+                    match instruction {
+                        AssemblyInstruction::Mov {
+                            source,
+                            destination,
+                        } => {
+                            convert_pseudo_register(
+                                source,
+                                &mut identifier_offsets,
+                                &mut offset_counter,
+                            );
+                            convert_pseudo_register(
+                                destination,
+                                &mut identifier_offsets,
+                                &mut offset_counter,
+                            );
+                        }
+                        AssemblyInstruction::Unary { op: _, operand } => {
+                            convert_pseudo_register(
+                                operand,
+                                &mut identifier_offsets,
+                                &mut offset_counter,
+                            );
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        },
+    };
+    offset_counter
+}
+
+/// Converts a pseudo-register operand to a stack operand.
+///
+/// This function takes an `Operand` and attempts to convert it from a `Pseudo` variant (representing an identifier) to a `Stack` variant (representing a memory offset).
+///
+/// # Arguments
+///
+/// * `operand`: A mutable reference to the `Operand` to be converted. If it's a `Pseudo` variant, it will be modified in place to become a `Stack` variant.
+/// * `identifier_offsets`: A mutable reference to a `HashMap` that maps identifier strings to their allocated stack offsets (`i32`).
+/// * `offset_counter`: A mutable reference to an `i32` that acts as a counter for allocating new stack offsets. It is decremented for each new identifier.
+///
+/// # Returns
+///
+/// This function does not return a value, but it modifies the `operand` argument in place.
+fn convert_pseudo_register(
+    operand: &mut AssemblyUnaryOperand,
+    identifier_offsets: &mut HashMap<String, i32>,
+    offset_counter: &mut i32,
+) -> () {
+    match operand {
+        AssemblyUnaryOperand::Pseudo(identifier) => {
+            if let Some(offset) = identifier_offsets.get(identifier) {
+                *operand = AssemblyUnaryOperand::Stack(*offset);
+                return;
+            }
+            *offset_counter -= constants::STACK_ADDRESS_OFFSET;
+            identifier_offsets.insert(identifier.clone(), *offset_counter);
+            *operand = AssemblyUnaryOperand::Stack(*offset_counter);
+        }
+        _ => {}
+    }
+}
+
+/// Fixes up instructions by allocating stack space and resolving memory-to-memory operations.
+///
+/// # Arguments
+///
+/// * `asm_ast`: The `AssemblyAst` to process.
+/// * `stack_offset`: The total stack space in bytes to allocate for the function.
+///
+/// # Returns
+///
+/// A new `AssemblyAst` with the instructions fixed up.
+fn fixup_instructions(asm_ast: AssemblyAst, stack_offset: i32) -> AssemblyAst {
+    match asm_ast {
+        AssemblyAst::Program { function } => match function {
+            AssemblyFunction::Function {
+                identifier,
+                instructions,
+            } => {
+                let instructions = allocate_stack_space(instructions.clone(), stack_offset.clone());
+                let mut fixed_instructions = vec![];
+                for instruction in instructions.iter() {
+                    fixed_instructions.append(&mut fixup_memory_to_memory_operation(instruction));
+                }
+                AssemblyAst::Program {
+                    function: AssemblyFunction::Function {
+                        identifier: identifier.to_string(),
+                        instructions: fixed_instructions,
+                    },
+                }
+            }
+        },
+    }
+}
+
+/// Inserts an instruction to allocate stack space at the beginning of the instruction list.
+///
+/// # Arguments
+///
+/// * `instructions` - The vector of instructions to modify.
+/// * `stack_offset` - The amount of stack space to allocate.
+///
+/// # Returns
+///
+/// A new vector of instructions with the `AllocateStack` instruction prepended
+fn allocate_stack_space(
+    mut instructions: Vec<AssemblyInstruction>,
+    stack_offset: i32,
+) -> Vec<AssemblyInstruction> {
+    instructions.insert(0, AssemblyInstruction::AllocateStack { stack_offset });
+    instructions
+}
+
+/// Fixes up memory-to-memory `Mov` operations by using a scratch register.
+///
+/// When a `Mov` instruction involves two memory operands, it's not directly supported by many architectures. This function replaces such an operation with two instructions: the first moves the source memory to a scratch register (R10),and the second moves the scratch register to the destination memory.
+///
+/// # Arguments
+///
+/// * `asm_instruction`: The `AssemblyInstruction` to potentially fix up.
+///
+/// # Returns
+///
+/// A `Vec<AssemblyInstruction>` containing the original instruction if no fixup was needed, or the sequence of two instructions if a memory-to-memory `Mov` was encountered.
+fn fixup_memory_to_memory_operation(
+    asm_instruction: &AssemblyInstruction,
+) -> Vec<AssemblyInstruction> {
+    let scratch_register_operand = AssemblyUnaryOperand::Register(AssemblyRegister::R10);
+    match asm_instruction {
+        AssemblyInstruction::Mov {
+            source,
+            destination,
+        } => match (source, destination) {
+            (AssemblyUnaryOperand::Stack(_), AssemblyUnaryOperand::Stack(_)) => {
+                let move1 = AssemblyInstruction::Mov {
+                    source: source.clone(),
+                    destination: scratch_register_operand.clone(),
+                };
+                let move2 = AssemblyInstruction::Mov {
+                    source: scratch_register_operand.clone(),
+                    destination: destination.clone(),
+                };
+                vec![move1, move2]
+            }
+            _ => vec![asm_instruction.clone()],
+        },
+        _ => vec![asm_instruction.clone()],
     }
 }
 
