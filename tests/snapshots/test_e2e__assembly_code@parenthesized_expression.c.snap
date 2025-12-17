@@ -4,5 +4,5 @@ expression: assembly_code
 input_file: tests/test_programs/parenthesized_expression.c
 ---
 Final(
-    "\t.globl _main\n_main:\n\tpushq %rbp\n\tmovq %rsp, %rbp\n\tsubq $0, %rsp\n\tmovl $1, %eax\n\tmovq %rbp, %rsp\n\tpopq %rbp\n\tret\n\n",
+    "\t.globl _main\n_main:\n\tpushq %rbp\n\tmovq %rsp, %rbp\n\tsubq $0, %rsp\n\tmovl $1, %eax\n\tmovq %rbp, %rsp\n\tpopq %rbp\n\tret\n",
 )
