@@ -31,6 +31,17 @@ pub enum TackyInstruction {
         /// The destination where the result of the operation will be stored.
         destination: TackyValue,
     },
+    /// An instruction that performs a binary operation on two values.
+    Binary {
+        /// The binary operator to be applied.
+        operator: TackyBinaryOperator,
+        /// The first source value for the operation.
+        source1: TackyValue,
+        /// The second source value for the operation.
+        source2: TackyValue,
+        /// The destination where the result of the operation will be stored.
+        destination: TackyValue,
+    },
 }
 
 /// Represents a value within the TACKY IR.
@@ -42,11 +53,21 @@ pub enum TackyValue {
     Variable(String),
 }
 
-///  Represents a unary operator within the TACKY IR.
+/// Represents a unary operator within the TACKY IR.
 #[derive(Debug, Clone, PartialEq)]
 pub enum TackyUnaryOperator {
     /// Bitwise complement
     Complement,
     /// Arithmetic negation
     Negate,
+}
+
+/// Represents a binary operator within the TACKY IR.
+#[derive(Debug, Clone, PartialEq)]
+pub enum TackyBinaryOperator {
+    Add,
+    Subtract,
+    Multiply,
+    Divide,
+    Remainder,
 }

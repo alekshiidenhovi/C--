@@ -152,6 +152,14 @@ fn convert_instructions(tacky_instructions: &Vec<TackyInstruction>) -> Vec<Assem
                 asm_instructions.push(mov_instruction);
                 asm_instructions.push(unary_instruction);
             }
+            TackyInstruction::Binary {
+                operator,
+                source1,
+                source2,
+                destination,
+            } => {
+                todo!()
+            }
         }
     }
     asm_instructions

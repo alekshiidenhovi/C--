@@ -2,10 +2,12 @@ pub mod errors;
 pub mod tacky_ast;
 
 use crate::compiler::parser::cmm_ast::{
-    CmmAst, CmmExpression, CmmFunction, CmmStatement, CmmUnaryOperator,
+    CmmAst, CmmBinaryOperator, CmmExpression, CmmFunction, CmmStatement, CmmUnaryOperator,
 };
 use errors::IRConversionError;
-use tacky_ast::{TackyAst, TackyFunction, TackyInstruction, TackyUnaryOperator, TackyValue};
+use tacky_ast::{
+    TackyAst, TackyBinaryOperator, TackyFunction, TackyInstruction, TackyUnaryOperator, TackyValue,
+};
 
 /// Represents an emitter for Tacky, a language or system.
 ///
@@ -131,7 +133,18 @@ impl TackyEmitter {
                 left,
                 right,
             } => {
-                todo!()
+                let source1 = self.emit_tacky(left, tacky_instructions)?;
+                let source2 = self.emit_tacky(right, tacky_instructions)?;
+                let destination_name = self.make_temporary();
+                let destination = TackyValue::Variable(destination_name);
+                let operator = self.convert_binary_operator(operator);
+                tacky_instructions.push(TackyInstruction::Binary {
+                    operator,
+                    source1,
+                    source2,
+                    destination: destination.clone(),
+                });
+                Ok(destination)
             }
         }
     }
@@ -150,6 +163,26 @@ impl TackyEmitter {
         match cmm_operator {
             CmmUnaryOperator::Complement => TackyUnaryOperator::Complement,
             CmmUnaryOperator::Negate => TackyUnaryOperator::Negate,
+        }
+    }
+
+    /// Converts a C-- binary operator into a TACKY binary operator.
+    ///
+    /// # Arguments
+    ///
+    /// * `cmm_operator` - A reference to the C-- `CmmBinaryOperator` to convert.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` containing the generated `TackyBinaryOperator` on success,
+    /// or a `CodegenError` on failure.
+    fn convert_binary_operator(&self, cmm_operator: &CmmBinaryOperator) -> TackyBinaryOperator {
+        match cmm_operator {
+            CmmBinaryOperator::Add => TackyBinaryOperator::Add,
+            CmmBinaryOperator::Subtract => TackyBinaryOperator::Subtract,
+            CmmBinaryOperator::Multiply => TackyBinaryOperator::Multiply,
+            CmmBinaryOperator::Divide => TackyBinaryOperator::Divide,
+            CmmBinaryOperator::Remainder => TackyBinaryOperator::Remainder,
         }
     }
 
@@ -261,6 +294,29 @@ mod tests {
                     destination: TackyValue::Variable(String::from("tmp.1")),
                 }
             ]
+        );
+    }
+
+    #[test]
+    fn test_emit_tacky_binary_operation() {
+        let mut tacky_emitter = TackyEmitter::new();
+        let cmm_expression = CmmExpression::Binary {
+            operator: CmmBinaryOperator::Add,
+            left: Box::new(CmmExpression::IntegerConstant { value: 1 }),
+            right: Box::new(CmmExpression::IntegerConstant { value: 2 }),
+        };
+        let mut tacky_instructions = vec![];
+        let tacky_value = tacky_emitter.emit_tacky(&cmm_expression, &mut tacky_instructions);
+
+        assert_eq!(tacky_value, Ok(TackyValue::Variable(String::from("tmp.0"))));
+        assert_eq!(
+            tacky_instructions,
+            vec![TackyInstruction::Binary {
+                operator: TackyBinaryOperator::Add,
+                source1: TackyValue::Constant(1),
+                source2: TackyValue::Constant(2),
+                destination: TackyValue::Variable(String::from("tmp.0")),
+            }]
         );
     }
 
