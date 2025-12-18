@@ -1,6 +1,6 @@
 use crate::compiler::code_gen::assembly_ast::{
     AssemblyAst, AssemblyFunction, AssemblyInstruction, AssemblyRegister, AssemblyUnaryOperand,
-    AssemblyUnaryOperation,
+    AssemblyUnaryOperator,
 };
 
 /// Emits assembly code from an abstract syntax tree.
@@ -92,10 +92,10 @@ fn format_instruction(instruction: &AssemblyInstruction) -> String {
 /// # Returns
 ///
 /// A string representing the unary operation.
-fn format_unary_operation(op: &AssemblyUnaryOperation) -> String {
+fn format_unary_operation(op: &AssemblyUnaryOperator) -> String {
     match op {
-        AssemblyUnaryOperation::Neg => "negl".to_string(),
-        AssemblyUnaryOperation::Not => "notl".to_string(),
+        AssemblyUnaryOperator::Neg => "negl".to_string(),
+        AssemblyUnaryOperator::Not => "notl".to_string(),
     }
 }
 

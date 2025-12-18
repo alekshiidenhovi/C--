@@ -7,7 +7,7 @@ use crate::compiler::ir_gen::tacky_ast::{
 };
 use assembly_ast::{
     AssemblyAst, AssemblyFunction, AssemblyInstruction, AssemblyRegister, AssemblyUnaryOperand,
-    AssemblyUnaryOperation,
+    AssemblyUnaryOperator,
 };
 use errors::CodegenError;
 use std::collections::HashMap;
@@ -25,7 +25,7 @@ use std::collections::HashMap;
 /// ```
 /// # use cmm::compiler::ir_gen::tacky_ast::{TackyFunction, TackyAst, TackyInstruction, TackyUnaryOperator, TackyValue};
 /// # use cmm::compiler::code_gen::convert_ast;
-/// # use cmm::compiler::code_gen::assembly_ast::{AssemblyAst, AssemblyFunction, AssemblyInstruction, AssemblyUnaryOperand, AssemblyUnaryOperation, AssemblyRegister};
+/// # use cmm::compiler::code_gen::assembly_ast::{AssemblyAst, AssemblyFunction, AssemblyInstruction, AssemblyUnaryOperand, AssemblyUnaryOperator, AssemblyRegister};
 /// # use cmm::compiler::code_gen::errors::CodegenError;
 /// let identifier = "main".to_string();
 /// let temp_0_name = "tmp.0".to_string();
@@ -56,7 +56,7 @@ use std::collections::HashMap;
 ///             destination: AssemblyUnaryOperand::Stack(-4),
 ///         },
 ///         AssemblyInstruction::Unary {
-///             op: AssemblyUnaryOperation::Neg,
+///             op: AssemblyUnaryOperator::Neg,
 ///             operand: AssemblyUnaryOperand::Stack(-4),
 ///         },
 ///         AssemblyInstruction::Mov {
@@ -68,7 +68,7 @@ use std::collections::HashMap;
 ///             destination: AssemblyUnaryOperand::Stack(-8),
 ///         },
 ///         AssemblyInstruction::Unary {
-///             op: AssemblyUnaryOperation::Not,
+///             op: AssemblyUnaryOperator::Not,
 ///             operand: AssemblyUnaryOperand::Stack(-8),
 ///         },
 ///         AssemblyInstruction::Mov {
@@ -165,7 +165,7 @@ fn convert_instructions(tacky_instructions: &Vec<TackyInstruction>) -> Vec<Assem
     asm_instructions
 }
 
-/// Converts a `TackyUnaryOperator` to its corresponding `AssemblyUnaryOperation`.
+/// Converts a `TackyUnaryOperator` to its corresponding `AssemblyUnaryOperator`.
 ///
 /// # Arguments
 ///
@@ -173,11 +173,11 @@ fn convert_instructions(tacky_instructions: &Vec<TackyInstruction>) -> Vec<Assem
 ///
 /// # Returns
 ///
-/// An `AssemblyUnaryOperation` enum value that represents the equivalent operation.
-fn convert_operator(tacky_operator: &TackyUnaryOperator) -> AssemblyUnaryOperation {
+/// An `AssemblyUnaryOperator` enum value that represents the equivalent operation.
+fn convert_operator(tacky_operator: &TackyUnaryOperator) -> AssemblyUnaryOperator {
     match tacky_operator {
-        TackyUnaryOperator::Negate => AssemblyUnaryOperation::Neg,
-        TackyUnaryOperator::Complement => AssemblyUnaryOperation::Not,
+        TackyUnaryOperator::Negate => AssemblyUnaryOperator::Neg,
+        TackyUnaryOperator::Complement => AssemblyUnaryOperator::Not,
     }
 }
 
@@ -394,7 +394,7 @@ mod tests {
                     destination: AssemblyUnaryOperand::Pseudo(identifier.clone()),
                 },
                 AssemblyInstruction::Unary {
-                    op: AssemblyUnaryOperation::Neg,
+                    op: AssemblyUnaryOperator::Neg,
                     operand: AssemblyUnaryOperand::Pseudo(identifier.clone()),
                 },
                 AssemblyInstruction::Mov {

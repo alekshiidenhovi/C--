@@ -25,7 +25,7 @@ pub enum AssemblyInstruction {
     },
     /// Unary operation: applies a unary operator to an operand.
     Unary {
-        op: AssemblyUnaryOperation,
+        op: AssemblyUnaryOperator,
         operand: AssemblyUnaryOperand,
     },
     /// Allocate stack instruction: allocates a specified amount of stack space.
@@ -34,9 +34,9 @@ pub enum AssemblyInstruction {
     Ret,
 }
 
-/// Represents an unary operation.
+/// Represents an unary operator.
 #[derive(Debug, PartialEq, Clone)]
-pub enum AssemblyUnaryOperation {
+pub enum AssemblyUnaryOperator {
     /// Negation instruction
     Neg,
     /// Bitwise NOT instruction
