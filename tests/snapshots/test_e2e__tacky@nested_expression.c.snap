@@ -3,35 +3,33 @@ source: tests/test_e2e.rs
 expression: tacky_ast
 input_file: tests/test_programs/nested_expression.c
 ---
-Tacky(
-    Program {
-        function: Function {
-            identifier: "main",
-            instructions: [
-                Unary {
-                    operator: Negate,
-                    source: Constant(
-                        1,
-                    ),
-                    destination: Variable(
-                        "tmp.0",
-                    ),
-                },
-                Unary {
-                    operator: Negate,
-                    source: Variable(
-                        "tmp.0",
-                    ),
-                    destination: Variable(
-                        "tmp.1",
-                    ),
-                },
-                Return {
-                    value: Variable(
-                        "tmp.1",
-                    ),
-                },
-            ],
-        },
+Program {
+    function: Function {
+        identifier: "main",
+        instructions: [
+            Unary {
+                operator: Negate,
+                source: Constant(
+                    1,
+                ),
+                destination: Variable(
+                    "tmp.0",
+                ),
+            },
+            Unary {
+                operator: Negate,
+                source: Variable(
+                    "tmp.0",
+                ),
+                destination: Variable(
+                    "tmp.1",
+                ),
+            },
+            Return {
+                value: Variable(
+                    "tmp.1",
+                ),
+            },
+        ],
     },
-)
+}

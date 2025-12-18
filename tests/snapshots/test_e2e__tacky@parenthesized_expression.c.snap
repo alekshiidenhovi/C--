@@ -3,17 +3,15 @@ source: tests/test_e2e.rs
 expression: tacky_ast
 input_file: tests/test_programs/parenthesized_expression.c
 ---
-Tacky(
-    Program {
-        function: Function {
-            identifier: "main",
-            instructions: [
-                Return {
-                    value: Constant(
-                        1,
-                    ),
-                },
-            ],
-        },
+Program {
+    function: Function {
+        identifier: "main",
+        instructions: [
+            Return {
+                value: Constant(
+                    1,
+                ),
+            },
+        ],
     },
-)
+}

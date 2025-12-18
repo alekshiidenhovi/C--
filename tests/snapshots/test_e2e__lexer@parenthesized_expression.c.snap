@@ -3,23 +3,21 @@ source: tests/test_e2e.rs
 expression: tokens
 input_file: tests/test_programs/parenthesized_expression.c
 ---
-Lexer(
-    [
-        IntKeyword,
-        Identifier(
-            "main",
-        ),
-        OpenParen,
-        VoidKeyword,
-        CloseParen,
-        OpenBrace,
-        ReturnKeyword,
-        OpenParen,
-        Constant(
-            1,
-        ),
-        CloseParen,
-        Semicolon,
-        CloseBrace,
-    ],
-)
+[
+    IntKeyword,
+    Identifier(
+        "main",
+    ),
+    OpenParen,
+    VoidKeyword,
+    CloseParen,
+    OpenBrace,
+    ReturnKeyword,
+    OpenParen,
+    Constant(
+        1,
+    ),
+    CloseParen,
+    Semicolon,
+    CloseBrace,
+]

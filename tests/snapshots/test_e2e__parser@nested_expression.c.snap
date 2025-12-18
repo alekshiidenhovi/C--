@@ -3,21 +3,19 @@ source: tests/test_e2e.rs
 expression: cmm_ast
 input_file: tests/test_programs/nested_expression.c
 ---
-Parser(
-    Program {
-        function: Function {
-            identifier: "main",
-            body: Return {
+Program {
+    function: Function {
+        identifier: "main",
+        body: Return {
+            expression: Unary {
+                operator: Negate,
                 expression: Unary {
                     operator: Negate,
-                    expression: Unary {
-                        operator: Negate,
-                        expression: IntegerConstant {
-                            value: 1,
-                        },
+                    expression: IntegerConstant {
+                        value: 1,
                     },
                 },
             },
         },
     },
-)
+}

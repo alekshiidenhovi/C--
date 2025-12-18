@@ -3,6 +3,4 @@ source: tests/test_e2e.rs
 expression: assembly_code
 input_file: tests/test_programs/unary_negation.c
 ---
-Final(
-    "\t.globl _main\n_main:\n\tpushq %rbp\n\tmovq %rsp, %rbp\n\tsubq $-4, %rsp\n\tmovl $1, -4(%rbp)\n\tnegl -4(%rbp)\n\tmovl -4(%rbp), %eax\n\tmovq %rbp, %rsp\n\tpopq %rbp\n\tret\n",
-)
+"\t.globl _main\n_main:\n\tpushq %rbp\n\tmovq %rsp, %rbp\n\tsubq $-4, %rsp\n\tmovl $1, -4(%rbp)\n\tnegl -4(%rbp)\n\tmovl -4(%rbp), %eax\n\tmovq %rbp, %rsp\n\tpopq %rbp\n\tret\n"

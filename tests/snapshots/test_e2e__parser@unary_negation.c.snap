@@ -3,18 +3,16 @@ source: tests/test_e2e.rs
 expression: cmm_ast
 input_file: tests/test_programs/unary_negation.c
 ---
-Parser(
-    Program {
-        function: Function {
-            identifier: "main",
-            body: Return {
-                expression: Unary {
-                    operator: Negate,
-                    expression: IntegerConstant {
-                        value: 1,
-                    },
+Program {
+    function: Function {
+        identifier: "main",
+        body: Return {
+            expression: Unary {
+                operator: Negate,
+                expression: IntegerConstant {
+                    value: 1,
                 },
             },
         },
     },
-)
+}

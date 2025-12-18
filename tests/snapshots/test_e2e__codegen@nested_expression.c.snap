@@ -3,60 +3,58 @@ source: tests/test_e2e.rs
 expression: asm_ast
 input_file: tests/test_programs/nested_expression.c
 ---
-Codegen(
-    Program {
-        function: Function {
-            identifier: "main",
-            instructions: [
-                AllocateStack {
-                    stack_offset: -8,
-                },
-                Mov {
-                    source: Imm(
-                        1,
-                    ),
-                    destination: Stack(
-                        -4,
-                    ),
-                },
-                Unary {
-                    op: Neg,
-                    operand: Stack(
-                        -4,
-                    ),
-                },
-                Mov {
-                    source: Stack(
-                        -4,
-                    ),
-                    destination: Register(
-                        R10,
-                    ),
-                },
-                Mov {
-                    source: Register(
-                        R10,
-                    ),
-                    destination: Stack(
-                        -8,
-                    ),
-                },
-                Unary {
-                    op: Neg,
-                    operand: Stack(
-                        -8,
-                    ),
-                },
-                Mov {
-                    source: Stack(
-                        -8,
-                    ),
-                    destination: Register(
-                        AX,
-                    ),
-                },
-                Ret,
-            ],
-        },
+Program {
+    function: Function {
+        identifier: "main",
+        instructions: [
+            AllocateStack {
+                stack_offset: -8,
+            },
+            Mov {
+                source: Imm(
+                    1,
+                ),
+                destination: Stack(
+                    -4,
+                ),
+            },
+            Unary {
+                op: Neg,
+                operand: Stack(
+                    -4,
+                ),
+            },
+            Mov {
+                source: Stack(
+                    -4,
+                ),
+                destination: Register(
+                    R10,
+                ),
+            },
+            Mov {
+                source: Register(
+                    R10,
+                ),
+                destination: Stack(
+                    -8,
+                ),
+            },
+            Unary {
+                op: Neg,
+                operand: Stack(
+                    -8,
+                ),
+            },
+            Mov {
+                source: Stack(
+                    -8,
+                ),
+                destination: Register(
+                    AX,
+                ),
+            },
+            Ret,
+        ],
     },
-)
+}

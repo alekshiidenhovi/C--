@@ -3,22 +3,20 @@ source: tests/test_e2e.rs
 expression: tokens
 input_file: tests/test_programs/unary_complement.c
 ---
-Lexer(
-    [
-        IntKeyword,
-        Identifier(
-            "main",
-        ),
-        OpenParen,
-        VoidKeyword,
-        CloseParen,
-        OpenBrace,
-        ReturnKeyword,
-        Tilde,
-        Constant(
-            1,
-        ),
-        Semicolon,
-        CloseBrace,
-    ],
-)
+[
+    IntKeyword,
+    Identifier(
+        "main",
+    ),
+    OpenParen,
+    VoidKeyword,
+    CloseParen,
+    OpenBrace,
+    ReturnKeyword,
+    Tilde,
+    Constant(
+        1,
+    ),
+    Semicolon,
+    CloseBrace,
+]
