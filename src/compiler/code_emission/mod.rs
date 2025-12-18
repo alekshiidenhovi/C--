@@ -1,5 +1,5 @@
 use crate::compiler::code_gen::assembly_ast::{
-    AssemblyAst, AssemblyFunction, AssemblyInstruction, AssemblyRegister, AssemblyUnaryOperand,
+    AssemblyAst, AssemblyFunction, AssemblyInstruction, AssemblyOperand, AssemblyRegister,
     AssemblyUnaryOperator,
 };
 
@@ -80,6 +80,13 @@ fn format_instruction(instruction: &AssemblyInstruction) -> String {
         AssemblyInstruction::AllocateStack { stack_offset } => {
             wrap_instruction(format!("subq ${}, %rsp", stack_offset).as_str())
         }
+        AssemblyInstruction::Binary {
+            op,
+            source,
+            destination,
+        } => todo!(),
+        AssemblyInstruction::Idiv { operand } => todo!(),
+        AssemblyInstruction::Cdq => todo!(),
     }
 }
 
@@ -108,12 +115,12 @@ fn format_unary_operation(op: &AssemblyUnaryOperator) -> String {
 /// # Returns
 ///
 /// A `String` representing the assembly code for the operand.
-fn format_operand(operand: &AssemblyUnaryOperand) -> String {
+fn format_operand(operand: &AssemblyOperand) -> String {
     match operand {
-        AssemblyUnaryOperand::Imm(value) => format_immediate_value(value),
-        AssemblyUnaryOperand::Register(register) => format_register(register),
-        AssemblyUnaryOperand::Stack(offset) => format_stack_offset(offset),
-        AssemblyUnaryOperand::Pseudo(_) => panic!(
+        AssemblyOperand::Imm(value) => format_immediate_value(value),
+        AssemblyOperand::Register(register) => format_register(register),
+        AssemblyOperand::Stack(offset) => format_stack_offset(offset),
+        AssemblyOperand::Pseudo(_) => panic!(
             "Pseudo registers should not be emitted to assembly. Have you converted them correctly to actual register addresses?"
         ),
     }
@@ -132,6 +139,8 @@ fn format_register(register: &AssemblyRegister) -> String {
     match register {
         AssemblyRegister::AX => "%eax".to_string(),
         AssemblyRegister::R10 => "%r10d".to_string(),
+        AssemblyRegister::DX => todo!(),
+        AssemblyRegister::R11 => todo!(),
     }
 }
 

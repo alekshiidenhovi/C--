@@ -20,14 +20,24 @@ pub enum AssemblyFunction {
 pub enum AssemblyInstruction {
     /// Move operation: copies a value from a source operand to a destination operand.
     Mov {
-        source: AssemblyUnaryOperand,
-        destination: AssemblyUnaryOperand,
+        source: AssemblyOperand,
+        destination: AssemblyOperand,
     },
     /// Unary operation: applies a unary operator to an operand.
     Unary {
         op: AssemblyUnaryOperator,
-        operand: AssemblyUnaryOperand,
+        operand: AssemblyOperand,
     },
+    /// Binary operation: applies a binary operator to two operands.
+    Binary {
+        op: AssemblyBinaryOperator,
+        source: AssemblyOperand,
+        destination: AssemblyOperand,
+    },
+    /// Divide operation: divides an operand with values stored in %eax and %edx.
+    Idiv { operand: AssemblyOperand },
+    /// Convert Doubleword to Quadword (CDQ) operation: performs sign extension on the value stored in %eax.
+    Cdq,
     /// Allocate stack instruction: allocates a specified amount of stack space.
     AllocateStack { stack_offset: i32 },
     /// Return instruction: signifies the end of a function execution.
@@ -43,9 +53,17 @@ pub enum AssemblyUnaryOperator {
     Not,
 }
 
+/// Represents a binary operator.
+#[derive(Debug, PartialEq, Clone)]
+pub enum AssemblyBinaryOperator {
+    Add,
+    Sub,
+    Mult,
+}
+
 /// Represents an operand for an instruction, which can be an immediate value or a register.
 #[derive(Debug, PartialEq, Clone)]
-pub enum AssemblyUnaryOperand {
+pub enum AssemblyOperand {
     /// An immediate integer value.
     Imm(i32),
     /// A CPU register
@@ -61,6 +79,10 @@ pub enum AssemblyUnaryOperand {
 pub enum AssemblyRegister {
     /// AX CPU register
     AX,
+    /// DX CPU register
+    DX,
     /// R10 scratch register
     R10,
+    /// R11 scratch register
+    R11,
 }

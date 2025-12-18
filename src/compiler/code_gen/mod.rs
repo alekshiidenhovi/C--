@@ -6,7 +6,7 @@ use crate::compiler::ir_gen::tacky_ast::{
     TackyAst, TackyFunction, TackyInstruction, TackyUnaryOperator, TackyValue,
 };
 use assembly_ast::{
-    AssemblyAst, AssemblyFunction, AssemblyInstruction, AssemblyRegister, AssemblyUnaryOperand,
+    AssemblyAst, AssemblyFunction, AssemblyInstruction, AssemblyOperand, AssemblyRegister,
     AssemblyUnaryOperator,
 };
 use errors::CodegenError;
@@ -25,7 +25,7 @@ use std::collections::HashMap;
 /// ```
 /// # use cmm::compiler::ir_gen::tacky_ast::{TackyFunction, TackyAst, TackyInstruction, TackyUnaryOperator, TackyValue};
 /// # use cmm::compiler::code_gen::convert_ast;
-/// # use cmm::compiler::code_gen::assembly_ast::{AssemblyAst, AssemblyFunction, AssemblyInstruction, AssemblyUnaryOperand, AssemblyUnaryOperator, AssemblyRegister};
+/// # use cmm::compiler::code_gen::assembly_ast::{AssemblyAst, AssemblyFunction, AssemblyInstruction, AssemblyOperand, AssemblyUnaryOperator, AssemblyRegister};
 /// # use cmm::compiler::code_gen::errors::CodegenError;
 /// let identifier = "main".to_string();
 /// let temp_0_name = "tmp.0".to_string();
@@ -52,28 +52,28 @@ use std::collections::HashMap;
 ///     instructions: vec![
 ///         AssemblyInstruction::AllocateStack { stack_offset: -8 },
 ///         AssemblyInstruction::Mov {
-///             source: AssemblyUnaryOperand::Imm(1),
-///             destination: AssemblyUnaryOperand::Stack(-4),
+///             source: AssemblyOperand::Imm(1),
+///             destination: AssemblyOperand::Stack(-4),
 ///         },
 ///         AssemblyInstruction::Unary {
 ///             op: AssemblyUnaryOperator::Neg,
-///             operand: AssemblyUnaryOperand::Stack(-4),
+///             operand: AssemblyOperand::Stack(-4),
 ///         },
 ///         AssemblyInstruction::Mov {
-///             source: AssemblyUnaryOperand::Stack(-4),
-///             destination: AssemblyUnaryOperand::Register(AssemblyRegister::R10),
+///             source: AssemblyOperand::Stack(-4),
+///             destination: AssemblyOperand::Register(AssemblyRegister::R10),
 ///         },
 ///         AssemblyInstruction::Mov {
-///             source: AssemblyUnaryOperand::Register(AssemblyRegister::R10),
-///             destination: AssemblyUnaryOperand::Stack(-8),
+///             source: AssemblyOperand::Register(AssemblyRegister::R10),
+///             destination: AssemblyOperand::Stack(-8),
 ///         },
 ///         AssemblyInstruction::Unary {
 ///             op: AssemblyUnaryOperator::Not,
-///             operand: AssemblyUnaryOperand::Stack(-8),
+///             operand: AssemblyOperand::Stack(-8),
 ///         },
 ///         AssemblyInstruction::Mov {
-///             source: AssemblyUnaryOperand::Stack(-8),
-///             destination: AssemblyUnaryOperand::Register(AssemblyRegister::AX),
+///             source: AssemblyOperand::Stack(-8),
+///             destination: AssemblyOperand::Register(AssemblyRegister::AX),
 ///         },
 ///         AssemblyInstruction::Ret,
 ///     ],
@@ -130,7 +130,7 @@ fn convert_instructions(tacky_instructions: &Vec<TackyInstruction>) -> Vec<Assem
             TackyInstruction::Return { value } => {
                 let mov_instruction = AssemblyInstruction::Mov {
                     source: convert_operand(&value),
-                    destination: AssemblyUnaryOperand::Register(AssemblyRegister::AX),
+                    destination: AssemblyOperand::Register(AssemblyRegister::AX),
                 };
                 let ret_instruction = AssemblyInstruction::Ret;
                 asm_instructions.push(mov_instruction);
@@ -190,10 +190,10 @@ fn convert_operator(tacky_operator: &TackyUnaryOperator) -> AssemblyUnaryOperato
 /// # Returns
 ///
 /// An AssemblyUnaryOperand representing the converted value.
-fn convert_operand(tacky_operand: &TackyValue) -> AssemblyUnaryOperand {
+fn convert_operand(tacky_operand: &TackyValue) -> AssemblyOperand {
     match tacky_operand {
-        TackyValue::Constant(value) => AssemblyUnaryOperand::Imm(*value),
-        TackyValue::Variable(name) => AssemblyUnaryOperand::Pseudo(name.clone()),
+        TackyValue::Constant(value) => AssemblyOperand::Imm(*value),
+        TackyValue::Variable(name) => AssemblyOperand::Pseudo(name.clone()),
     }
 }
 
@@ -262,19 +262,19 @@ fn replace_pseudo_registers(asm_ast: &mut AssemblyAst) -> i32 {
 ///
 /// This function does not return a value, but it modifies the `operand` argument in place.
 fn convert_pseudo_register(
-    operand: &mut AssemblyUnaryOperand,
+    operand: &mut AssemblyOperand,
     identifier_offsets: &mut HashMap<String, i32>,
     offset_counter: &mut i32,
 ) -> () {
     match operand {
-        AssemblyUnaryOperand::Pseudo(identifier) => {
+        AssemblyOperand::Pseudo(identifier) => {
             if let Some(offset) = identifier_offsets.get(identifier) {
-                *operand = AssemblyUnaryOperand::Stack(*offset);
+                *operand = AssemblyOperand::Stack(*offset);
                 return;
             }
             *offset_counter -= constants::STACK_ADDRESS_OFFSET;
             identifier_offsets.insert(identifier.clone(), *offset_counter);
-            *operand = AssemblyUnaryOperand::Stack(*offset_counter);
+            *operand = AssemblyOperand::Stack(*offset_counter);
         }
         _ => {}
     }
@@ -345,13 +345,13 @@ fn allocate_stack_space(
 fn fixup_memory_to_memory_operation(
     asm_instruction: &AssemblyInstruction,
 ) -> Vec<AssemblyInstruction> {
-    let scratch_register_operand = AssemblyUnaryOperand::Register(AssemblyRegister::R10);
+    let scratch_register_operand = AssemblyOperand::Register(AssemblyRegister::R10);
     match asm_instruction {
         AssemblyInstruction::Mov {
             source,
             destination,
         } => match (source, destination) {
-            (AssemblyUnaryOperand::Stack(_), AssemblyUnaryOperand::Stack(_)) => {
+            (AssemblyOperand::Stack(_), AssemblyOperand::Stack(_)) => {
                 let move1 = AssemblyInstruction::Mov {
                     source: source.clone(),
                     destination: scratch_register_operand.clone(),
@@ -390,16 +390,16 @@ mod tests {
             result,
             vec![
                 AssemblyInstruction::Mov {
-                    source: AssemblyUnaryOperand::Imm(1),
-                    destination: AssemblyUnaryOperand::Pseudo(identifier.clone()),
+                    source: AssemblyOperand::Imm(1),
+                    destination: AssemblyOperand::Pseudo(identifier.clone()),
                 },
                 AssemblyInstruction::Unary {
                     op: AssemblyUnaryOperator::Neg,
-                    operand: AssemblyUnaryOperand::Pseudo(identifier.clone()),
+                    operand: AssemblyOperand::Pseudo(identifier.clone()),
                 },
                 AssemblyInstruction::Mov {
-                    source: AssemblyUnaryOperand::Pseudo(identifier.clone()),
-                    destination: AssemblyUnaryOperand::Register(AssemblyRegister::AX),
+                    source: AssemblyOperand::Pseudo(identifier.clone()),
+                    destination: AssemblyOperand::Register(AssemblyRegister::AX),
                 },
                 AssemblyInstruction::Ret,
             ]
@@ -415,8 +415,8 @@ mod tests {
                 identifier: identifier.clone(),
                 instructions: vec![
                     AssemblyInstruction::Mov {
-                        source: AssemblyUnaryOperand::Imm(1),
-                        destination: AssemblyUnaryOperand::Pseudo(pseudo_register_name),
+                        source: AssemblyOperand::Imm(1),
+                        destination: AssemblyOperand::Pseudo(pseudo_register_name),
                     },
                     AssemblyInstruction::Ret,
                 ],
@@ -431,8 +431,8 @@ mod tests {
                     identifier,
                     instructions: vec![
                         AssemblyInstruction::Mov {
-                            source: AssemblyUnaryOperand::Imm(1),
-                            destination: AssemblyUnaryOperand::Stack(-4),
+                            source: AssemblyOperand::Imm(1),
+                            destination: AssemblyOperand::Stack(-4),
                         },
                         AssemblyInstruction::Ret,
                     ],
