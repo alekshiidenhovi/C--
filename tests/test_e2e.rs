@@ -37,6 +37,7 @@ fn test_integer_constant() {
             CompilerResult::Final(assembly_code) => assembly_code,
             _ => panic!("Expected final result"),
         };
-        insta::assert_snapshot!("assembly_code", assembly_code);
+        let prettied_assembly_code = assembly_code.replace("\t", "    ");
+        insta::assert_snapshot!("assembly_code", prettied_assembly_code);
     });
 }

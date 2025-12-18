@@ -1,19 +1,19 @@
 ---
 source: tests/test_e2e.rs
-expression: assembly_code
+expression: prettied_assembly_code
 input_file: tests/test_programs/nested_expression.c
 ---
-	.globl _main
+    .globl _main
 _main:
-	pushq %rbp
-	movq %rsp, %rbp
-	subq $-8, %rsp
-	movl $1, -4(%rbp)
-	negl -4(%rbp)
-	movl -4(%rbp), %r10d
-	movl %r10d, -8(%rbp)
-	negl -8(%rbp)
-	movl -8(%rbp), %eax
-	movq %rbp, %rsp
-	popq %rbp
-	ret
+    pushq %rbp
+    movq %rsp, %rbp
+    subq $-8, %rsp
+    movl $1, -4(%rbp)
+    negl -4(%rbp)
+    movl -4(%rbp), %r10d
+    movl %r10d, -8(%rbp)
+    negl -8(%rbp)
+    movl -8(%rbp), %eax
+    movq %rbp, %rsp
+    popq %rbp
+    ret
