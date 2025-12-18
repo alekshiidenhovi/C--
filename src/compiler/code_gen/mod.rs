@@ -3,11 +3,11 @@ pub mod constants;
 pub mod errors;
 
 use crate::compiler::ir_gen::tacky_ast::{
-    TackyAst, TackyFunction, TackyInstruction, TackyUnaryOperator, TackyValue,
+    TackyAst, TackyBinaryOperator, TackyFunction, TackyInstruction, TackyUnaryOperator, TackyValue,
 };
 use assembly_ast::{
-    AssemblyAst, AssemblyFunction, AssemblyInstruction, AssemblyOperand, AssemblyRegister,
-    AssemblyUnaryOperator,
+    AssemblyAst, AssemblyBinaryOperator, AssemblyFunction, AssemblyInstruction, AssemblyOperand,
+    AssemblyRegister, AssemblyUnaryOperator,
 };
 use errors::CodegenError;
 use std::collections::HashMap;
@@ -146,7 +146,7 @@ fn convert_instructions(tacky_instructions: &Vec<TackyInstruction>) -> Vec<Assem
                     destination: convert_operand(&destination),
                 };
                 let unary_instruction = AssemblyInstruction::Unary {
-                    op: convert_operator(&operator),
+                    op: convert_unary_operator(&operator),
                     operand: convert_operand(&destination),
                 };
                 asm_instructions.push(mov_instruction);
@@ -158,7 +158,50 @@ fn convert_instructions(tacky_instructions: &Vec<TackyInstruction>) -> Vec<Assem
                 source2,
                 destination,
             } => {
-                todo!()
+                match convert_binary_operator(operator) {
+                    Some(asm_binary_operator) => {
+                        let mov_instruction = AssemblyInstruction::Mov {
+                            source: convert_operand(&source1),
+                            destination: convert_operand(&destination),
+                        };
+                        let binary_instruction = AssemblyInstruction::Binary {
+                            op: asm_binary_operator,
+                            source: convert_operand(&source2),
+                            destination: convert_operand(&destination),
+                        };
+                        asm_instructions.push(mov_instruction);
+                        asm_instructions.push(binary_instruction);
+                    }
+                    None => {
+                        let mov_to_reg_instruction = AssemblyInstruction::Mov {
+                            source: convert_operand(&source1),
+                            destination: AssemblyOperand::Register(AssemblyRegister::AX),
+                        };
+                        let cdq_instruction = AssemblyInstruction::Cdq;
+                        let idiv_instruction = AssemblyInstruction::Idiv {
+                            operand: convert_operand(&source2),
+                        };
+                        let mov_from_reg_instruction = match operator {
+                            // Quotient is stored in %eax
+                            TackyBinaryOperator::Divide => AssemblyInstruction::Mov {
+                                source: AssemblyOperand::Register(AssemblyRegister::AX),
+                                destination: convert_operand(&destination),
+                            },
+                            // Remainder is stored in %edx
+                            TackyBinaryOperator::Remainder => AssemblyInstruction::Mov {
+                                source: AssemblyOperand::Register(AssemblyRegister::DX),
+                                destination: convert_operand(&destination),
+                            },
+                            _ => unreachable!(
+                                "The other binary operators should have been handled by the previous match arm"
+                            ),
+                        };
+                        asm_instructions.push(mov_to_reg_instruction);
+                        asm_instructions.push(cdq_instruction);
+                        asm_instructions.push(idiv_instruction);
+                        asm_instructions.push(mov_from_reg_instruction);
+                    }
+                };
             }
         }
     }
@@ -174,10 +217,22 @@ fn convert_instructions(tacky_instructions: &Vec<TackyInstruction>) -> Vec<Assem
 /// # Returns
 ///
 /// An `AssemblyUnaryOperator` enum value that represents the equivalent operation.
-fn convert_operator(tacky_operator: &TackyUnaryOperator) -> AssemblyUnaryOperator {
-    match tacky_operator {
+fn convert_unary_operator(tacky_unary_operator: &TackyUnaryOperator) -> AssemblyUnaryOperator {
+    match tacky_unary_operator {
         TackyUnaryOperator::Negate => AssemblyUnaryOperator::Neg,
         TackyUnaryOperator::Complement => AssemblyUnaryOperator::Not,
+    }
+}
+
+fn convert_binary_operator(
+    tacky_binary_operator: &TackyBinaryOperator,
+) -> Option<AssemblyBinaryOperator> {
+    match tacky_binary_operator {
+        TackyBinaryOperator::Add => Some(AssemblyBinaryOperator::Add),
+        TackyBinaryOperator::Subtract => Some(AssemblyBinaryOperator::Sub),
+        TackyBinaryOperator::Multiply => Some(AssemblyBinaryOperator::Mult),
+        TackyBinaryOperator::Divide => None,
+        TackyBinaryOperator::Remainder => None,
     }
 }
 
