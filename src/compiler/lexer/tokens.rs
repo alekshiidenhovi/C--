@@ -65,6 +65,68 @@ impl Token {
             Token::Percent => TokenType::Percent,
         }
     }
+
+    /// Checks if the token is a binary operator.
+    ///
+    /// # Returns
+    ///
+    /// True if the token is a binary operator, false otherwise.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use cmm::compiler::lexer::tokens::Token;
+    /// # use cmm::compiler::lexer::tokens::TokenType;
+    ///
+    /// let token = Token::Plus;
+    /// assert_eq!(token.is_binary_operator(), true);
+    ///
+    /// let token = Token::IntKeyword;
+    /// assert_eq!(token.is_binary_operator(), false);
+    /// ```
+    pub fn is_binary_operator(&self) -> bool {
+        match self {
+            Token::Plus => true,
+            Token::Hyphen => true,
+            Token::Asterisk => true,
+            Token::ForwardSlash => true,
+            Token::Percent => true,
+            _ => false,
+        }
+    }
+
+    /// Gets the precedence of a binary operator.
+    ///
+    /// # Returns
+    ///
+    /// The precedence of the binary operator, or an error if the token is not a binary operator.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use cmm::compiler::lexer::tokens::Token;
+    /// # use cmm::compiler::lexer::tokens::TokenType;
+    ///
+    /// let summation_token = Token::Plus;
+    /// let multiplication_token = Token::Asterisk;
+    /// assert!(summation_token.get_binary_operator_precedence().is_ok());
+    /// assert!(multiplication_token.get_binary_operator_precedence().is_ok());
+    /// assert!(summation_token.get_binary_operator_precedence().unwrap() < multiplication_token.get_binary_operator_precedence().unwrap());
+    ///
+    /// let token = Token::IntKeyword;
+    /// assert!(token.get_binary_operator_precedence().is_err());
+    /// ```
+    pub fn get_binary_operator_precedence(&self) -> Result<u32, String> {
+        let precedence = match self {
+            Token::Plus => 45,
+            Token::Hyphen => 45,
+            Token::Asterisk => 50,
+            Token::ForwardSlash => 50,
+            Token::Percent => 50,
+            _ => return Err(format!("Token {:?} is not a binary operator", self)),
+        };
+        Ok(precedence)
+    }
 }
 
 impl fmt::Display for Token {

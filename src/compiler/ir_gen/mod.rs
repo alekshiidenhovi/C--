@@ -126,6 +126,13 @@ impl TackyEmitter {
                 });
                 Ok(destination)
             }
+            CmmExpression::Binary {
+                operator,
+                left,
+                right,
+            } => {
+                todo!()
+            }
         }
     }
 

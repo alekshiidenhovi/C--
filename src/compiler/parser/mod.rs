@@ -2,7 +2,9 @@ pub mod cmm_ast;
 pub mod errors;
 
 use crate::compiler::lexer::tokens::{Token, TokenType};
-use cmm_ast::{CmmAst, CmmExpression, CmmFunction, CmmStatement, CmmUnaryOperator};
+use cmm_ast::{
+    CmmAst, CmmBinaryOperator, CmmExpression, CmmFunction, CmmStatement, CmmUnaryOperator,
+};
 use errors::{ParserError, TokenTypeOption};
 
 /// Represents a parser for a given sequence of tokens.
@@ -108,7 +110,7 @@ impl Parser {
     /// A `Result` containing the parsed `CmmStatement` if successful, or a `ParserError`.
     fn parse_statement(&mut self) -> Result<CmmStatement, ParserError> {
         let _return = self.expect_token(TokenType::ReturnKeyword)?;
-        let expression = self.parse_expression()?;
+        let expression = self.parse_expression(0)?;
         let _semicolon = self.expect_token(TokenType::Semicolon)?;
         Ok(CmmStatement::Return { expression })
     }
@@ -133,19 +135,64 @@ impl Parser {
 
     /// Parses an expression from the token stream.
     ///
+    /// Uses the precedence climbing algorithm to parse expressions.
+    ///
     /// Supported expressions:
+    /// - Binary operations on two factors
+    /// - Single factor
+    ///
+    /// # Arguments
+    ///
+    /// * `min_precedence` - The minimum precedence of the binary operator to be parsed.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` containing the parsed `CmmExpression` if successful, or a `ParserError`.
+    fn parse_expression(&mut self, min_precedence: u32) -> Result<CmmExpression, ParserError> {
+        let mut left = self.parse_factor()?;
+        let mut next_token = self.peek_token()?.clone();
+        loop {
+            if !next_token.is_binary_operator() {
+                break;
+            }
+
+            // Non-binary operators will get -1 precedence, leading to a break in the next condition check
+            let next_token_precedence = next_token
+                .get_binary_operator_precedence()
+                .map(|x| x as i32)
+                .unwrap_or(-1);
+
+            if next_token_precedence < min_precedence as i32 {
+                break;
+            }
+
+            let operator = self.parse_binary_operator()?;
+            let right = self.parse_expression((next_token_precedence + 1) as u32)?;
+            left = CmmExpression::Binary {
+                operator,
+                left: Box::new(left),
+                right: Box::new(right),
+            };
+            next_token = self.peek_token()?.clone();
+        }
+        Ok(left)
+    }
+
+    /// Parses a factor from the token stream.
+    ///
+    /// Supported factor:
     /// - Integer constants
-    /// - Unary operators (negation and complement)
+    /// - Unary operations on a factor
     /// - Parenthesized expressions
     ///
     /// # Returns
     ///
     /// A `Result` containing the parsed `CmmExpression` if successful, or a `ParserError`.
-    fn parse_expression(&mut self) -> Result<CmmExpression, ParserError> {
+    fn parse_factor(&mut self) -> Result<CmmExpression, ParserError> {
         let token = self.peek_token()?;
         match token {
-            Token::Constant(_) => self.parse_constant_integer_expression(),
-            Token::Hyphen | Token::Tilde => self.parse_unary_expression(),
+            Token::Constant(_) => self.parse_constant_integer_factor(),
+            Token::Hyphen | Token::Tilde => self.parse_unary_factor(),
             Token::OpenParen => self.parse_parenthesized_expression(),
             _ => Err(ParserError::UnexpectedToken {
                 expected: TokenTypeOption::Many(vec![
@@ -164,7 +211,7 @@ impl Parser {
     /// # Returns
     ///
     /// A `Result` containing the parsed `CmmExpression` if successful, or a `ParserError`.
-    fn parse_constant_integer_expression(&mut self) -> Result<CmmExpression, ParserError> {
+    fn parse_constant_integer_factor(&mut self) -> Result<CmmExpression, ParserError> {
         let token = self.consume_token()?;
         match token {
             Token::Constant(value) => Ok(CmmExpression::IntegerConstant { value: *value }),
@@ -180,12 +227,12 @@ impl Parser {
     /// # Returns
     ///
     /// A `Result` containing the parsed unary `CmmExpression` if successful, or a `ParserError`.
-    fn parse_unary_expression(&mut self) -> Result<CmmExpression, ParserError> {
+    fn parse_unary_factor(&mut self) -> Result<CmmExpression, ParserError> {
         let operator = self.parse_unary_operator()?;
-        let inner_expression = self.parse_expression()?;
+        let inner_factor = self.parse_factor()?;
         Ok(CmmExpression::Unary {
             operator,
-            expression: Box::new(inner_expression),
+            expression: Box::new(inner_factor),
         })
     }
 
@@ -206,6 +253,32 @@ impl Parser {
         }
     }
 
+    /// Parses a binary operator from the token stream.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` containing the parsed `CmmBinaryOperator` if successful, or a `ParserError`.
+    fn parse_binary_operator(&mut self) -> Result<CmmBinaryOperator, ParserError> {
+        let token = self.consume_token()?;
+        match token {
+            Token::Plus => Ok(CmmBinaryOperator::Add),
+            Token::Hyphen => Ok(CmmBinaryOperator::Subtract),
+            Token::Asterisk => Ok(CmmBinaryOperator::Multiply),
+            Token::ForwardSlash => Ok(CmmBinaryOperator::Divide),
+            Token::Percent => Ok(CmmBinaryOperator::Remainder),
+            _ => Err(ParserError::UnexpectedToken {
+                expected: TokenTypeOption::Many(vec![
+                    TokenType::Plus,
+                    TokenType::Hyphen,
+                    TokenType::Asterisk,
+                    TokenType::ForwardSlash,
+                    TokenType::Percent,
+                ]),
+                actual: token.kind(),
+            }),
+        }
+    }
+
     /// Parses a parenthesized expression from the token stream.
     ///
     /// # Returns
@@ -213,7 +286,7 @@ impl Parser {
     /// A `Result` containing the parsed `CmmExpression` if successful, or a `ParserError`.
     fn parse_parenthesized_expression(&mut self) -> Result<CmmExpression, ParserError> {
         let _open_paren = self.expect_token(TokenType::OpenParen)?;
-        let expression = self.parse_expression()?;
+        let expression = self.parse_expression(0)?;
         let _close_paren = self.expect_token(TokenType::CloseParen)?;
         Ok(expression)
     }
@@ -323,19 +396,27 @@ mod tests {
 
     #[test]
     fn test_parse_valid_constant_integer_expression() {
-        let tokens = vec![Token::Constant(1)];
+        let tokens = vec![Token::Constant(1), Token::Semicolon];
         let mut parser = Parser::new(tokens);
-        let result = parser.parse_expression();
-        assert!(result.is_ok());
+        let result = parser.parse_expression(0);
+        assert!(
+            result.is_ok(),
+            "Should parse valid constant integer expression, got {:?}",
+            result
+        );
         assert_eq!(result.unwrap(), CmmExpression::IntegerConstant { value: 1 });
     }
 
     #[test]
     fn test_parse_valid_unary_expression_negate() {
-        let tokens = vec![Token::Hyphen, Token::Constant(1)];
+        let tokens = vec![Token::Hyphen, Token::Constant(1), Token::Semicolon];
         let mut parser = Parser::new(tokens);
-        let result = parser.parse_expression();
-        assert!(result.is_ok());
+        let result = parser.parse_expression(0);
+        assert!(
+            result.is_ok(),
+            "Should parse valid unary expression negate, got {:?}",
+            result
+        );
         assert_eq!(
             result.unwrap(),
             CmmExpression::Unary {
@@ -347,10 +428,14 @@ mod tests {
 
     #[test]
     fn test_parse_valid_unary_expression_complement() {
-        let tokens = vec![Token::Tilde, Token::Constant(1)];
+        let tokens = vec![Token::Tilde, Token::Constant(1), Token::Semicolon];
         let mut parser = Parser::new(tokens);
-        let result = parser.parse_expression();
-        assert!(result.is_ok());
+        let result = parser.parse_expression(0);
+        assert!(
+            result.is_ok(),
+            "Should parse valid unary expression complement, got {:?}",
+            result
+        );
         assert_eq!(
             result.unwrap(),
             CmmExpression::Unary {
@@ -362,11 +447,65 @@ mod tests {
 
     #[test]
     fn test_parse_valid_parenthesized_expression() {
-        let tokens = vec![Token::OpenParen, Token::Constant(1), Token::CloseParen];
+        let tokens = vec![
+            Token::OpenParen,
+            Token::Constant(1),
+            Token::CloseParen,
+            Token::Semicolon,
+        ];
         let mut parser = Parser::new(tokens);
-        let result = parser.parse_expression();
-        assert!(result.is_ok());
+        let result = parser.parse_expression(0);
+        assert!(
+            result.is_ok(),
+            "Should parse valid parenthesized expression, got {:?}",
+            result
+        );
         assert_eq!(result.unwrap(), CmmExpression::IntegerConstant { value: 1 });
+    }
+
+    #[test]
+    fn test_parse_valid_operator_precedence() {
+        let tokens = vec![
+            Token::Constant(1),
+            Token::Asterisk,
+            Token::Constant(2),
+            Token::Hyphen,
+            Token::Constant(3),
+            Token::Asterisk,
+            Token::OpenParen,
+            Token::Constant(4),
+            Token::Plus,
+            Token::Constant(5),
+            Token::CloseParen,
+            Token::Semicolon,
+        ];
+        let mut parser = Parser::new(tokens);
+        let result = parser.parse_expression(0);
+        assert!(
+            result.is_ok(),
+            "Should parse expression with correct operator precedence, got {:?}",
+            result
+        );
+        assert_eq!(
+            result.unwrap(),
+            CmmExpression::Binary {
+                operator: CmmBinaryOperator::Subtract,
+                left: Box::new(CmmExpression::Binary {
+                    operator: CmmBinaryOperator::Multiply,
+                    left: Box::new(CmmExpression::IntegerConstant { value: 1 }),
+                    right: Box::new(CmmExpression::IntegerConstant { value: 2 }),
+                }),
+                right: Box::new(CmmExpression::Binary {
+                    operator: CmmBinaryOperator::Multiply,
+                    left: Box::new(CmmExpression::IntegerConstant { value: 3 }),
+                    right: Box::new(CmmExpression::Binary {
+                        operator: CmmBinaryOperator::Add,
+                        left: Box::new(CmmExpression::IntegerConstant { value: 4 }),
+                        right: Box::new(CmmExpression::IntegerConstant { value: 5 }),
+                    }),
+                }),
+            }
+        );
     }
 
     #[test]

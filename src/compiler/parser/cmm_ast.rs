@@ -31,6 +31,11 @@ pub enum CmmExpression {
         operator: CmmUnaryOperator,
         expression: Box<CmmExpression>,
     },
+    Binary {
+        operator: CmmBinaryOperator,
+        left: Box<CmmExpression>,
+        right: Box<CmmExpression>,
+    },
 }
 
 /// Represents a unary operator.
@@ -38,4 +43,14 @@ pub enum CmmExpression {
 pub enum CmmUnaryOperator {
     Complement,
     Negate,
+}
+
+/// Represents a binary operator.
+#[derive(Debug, PartialEq)]
+pub enum CmmBinaryOperator {
+    Add,
+    Subtract,
+    Multiply,
+    Divide,
+    Remainder,
 }
