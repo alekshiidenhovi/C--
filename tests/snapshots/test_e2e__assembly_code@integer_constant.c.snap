@@ -3,4 +3,12 @@ source: tests/test_e2e.rs
 expression: assembly_code
 input_file: tests/test_programs/integer_constant.c
 ---
-"\t.globl _main\n_main:\n\tpushq %rbp\n\tmovq %rsp, %rbp\n\tsubq $0, %rsp\n\tmovl $1, %eax\n\tmovq %rbp, %rsp\n\tpopq %rbp\n\tret\n"
+	.globl _main
+_main:
+	pushq %rbp
+	movq %rsp, %rbp
+	subq $0, %rsp
+	movl $1, %eax
+	movq %rbp, %rsp
+	popq %rbp
+	ret

@@ -37,6 +37,6 @@ fn test_integer_constant() {
             CompilerResult::Final(assembly_code) => assembly_code,
             _ => panic!("Expected final result"),
         };
-        insta::assert_debug_snapshot!("assembly_code", assembly_code);
+        insta::assert_snapshot!("assembly_code", assembly_code);
     });
 }
