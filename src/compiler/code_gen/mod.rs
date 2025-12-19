@@ -86,9 +86,24 @@ pub fn convert_ast(tacky_ast: TackyAst) -> Result<AssemblyAst, CodegenError> {
             function: convert_function(&function)?,
         },
     };
-    let stack_offset = replace_pseudo_registers(&mut asm_ast);
-    let asm_ast = fixup_instructions(asm_ast, stack_offset);
-    Ok(asm_ast)
+    match asm_ast {
+        AssemblyAst::Program { ref mut function } => match function {
+            AssemblyFunction::Function {
+                identifier,
+                instructions,
+            } => {
+                let stack_offset = replace_pseudo_registers(instructions);
+                let fixed_instructions = fixup_instructions(instructions, stack_offset);
+                let fixed_asm_ast = AssemblyAst::Program {
+                    function: AssemblyFunction::Function {
+                        identifier: identifier.to_string(),
+                        instructions: fixed_instructions,
+                    },
+                };
+                Ok(fixed_asm_ast)
+            }
+        },
+    }
 }
 
 ///
@@ -261,45 +276,24 @@ fn convert_operand(tacky_operand: &TackyValue) -> AssemblyOperand {
 /// # Returns
 ///
 /// The final stack offset after replacing pseudo registers.
-fn replace_pseudo_registers(asm_ast: &mut AssemblyAst) -> i32 {
+fn replace_pseudo_registers(instructions: &mut Vec<AssemblyInstruction>) -> i32 {
     let mut identifier_offsets: HashMap<String, i32> = HashMap::new();
     let mut offset_counter = 0;
-    match asm_ast {
-        AssemblyAst::Program { function } => match function {
-            AssemblyFunction::Function {
-                identifier: _,
-                instructions,
+    for instruction in instructions.iter_mut() {
+        match instruction {
+            AssemblyInstruction::Mov {
+                source,
+                destination,
             } => {
-                for instruction in instructions.iter_mut() {
-                    match instruction {
-                        AssemblyInstruction::Mov {
-                            source,
-                            destination,
-                        } => {
-                            convert_pseudo_register(
-                                source,
-                                &mut identifier_offsets,
-                                &mut offset_counter,
-                            );
-                            convert_pseudo_register(
-                                destination,
-                                &mut identifier_offsets,
-                                &mut offset_counter,
-                            );
-                        }
-                        AssemblyInstruction::Unary { op: _, operand } => {
-                            convert_pseudo_register(
-                                operand,
-                                &mut identifier_offsets,
-                                &mut offset_counter,
-                            );
-                        }
-                        _ => {}
-                    }
-                }
+                convert_pseudo_register(source, &mut identifier_offsets, &mut offset_counter);
+                convert_pseudo_register(destination, &mut identifier_offsets, &mut offset_counter);
             }
-        },
-    };
+            AssemblyInstruction::Unary { op: _, operand } => {
+                convert_pseudo_register(operand, &mut identifier_offsets, &mut offset_counter);
+            }
+            _ => {}
+        }
+    }
     offset_counter
 }
 
@@ -345,27 +339,16 @@ fn convert_pseudo_register(
 /// # Returns
 ///
 /// A new `AssemblyAst` with the instructions fixed up.
-fn fixup_instructions(asm_ast: AssemblyAst, stack_offset: i32) -> AssemblyAst {
-    match asm_ast {
-        AssemblyAst::Program { function } => match function {
-            AssemblyFunction::Function {
-                identifier,
-                instructions,
-            } => {
-                let instructions = allocate_stack_space(instructions.clone(), stack_offset.clone());
-                let mut fixed_instructions = vec![];
-                for instruction in instructions.iter() {
-                    fixed_instructions.append(&mut fixup_memory_to_memory_operation(instruction));
-                }
-                AssemblyAst::Program {
-                    function: AssemblyFunction::Function {
-                        identifier: identifier.to_string(),
-                        instructions: fixed_instructions,
-                    },
-                }
-            }
-        },
+fn fixup_instructions(
+    instructions: &Vec<AssemblyInstruction>,
+    stack_offset: i32,
+) -> Vec<AssemblyInstruction> {
+    let instructions = allocate_stack_space(instructions.clone(), stack_offset.clone());
+    let mut fixed_instructions = vec![];
+    for instruction in instructions.iter() {
+        fixed_instructions.append(&mut fixup_memory_to_memory_operation(instruction));
     }
+    fixed_instructions
 }
 
 /// Inserts an instruction to allocate stack space at the beginning of the instruction list.
@@ -463,36 +446,25 @@ mod tests {
 
     #[test]
     fn test_replace_pseudo_registers_success() {
-        let identifier = "main".to_string();
         let pseudo_register_name = "tmp.0".to_string();
-        let mut asm_ast = AssemblyAst::Program {
-            function: AssemblyFunction::Function {
-                identifier: identifier.clone(),
-                instructions: vec![
-                    AssemblyInstruction::Mov {
-                        source: AssemblyOperand::Imm(1),
-                        destination: AssemblyOperand::Pseudo(pseudo_register_name),
-                    },
-                    AssemblyInstruction::Ret,
-                ],
+        let mut instructions = vec![
+            AssemblyInstruction::Mov {
+                source: AssemblyOperand::Imm(1),
+                destination: AssemblyOperand::Pseudo(pseudo_register_name),
             },
-        };
-        let offset = replace_pseudo_registers(&mut asm_ast);
+            AssemblyInstruction::Ret,
+        ];
+        let offset = replace_pseudo_registers(&mut instructions);
         assert_eq!(offset, -4);
         assert_eq!(
-            asm_ast,
-            AssemblyAst::Program {
-                function: AssemblyFunction::Function {
-                    identifier,
-                    instructions: vec![
-                        AssemblyInstruction::Mov {
-                            source: AssemblyOperand::Imm(1),
-                            destination: AssemblyOperand::Stack(-4),
-                        },
-                        AssemblyInstruction::Ret,
-                    ],
-                }
-            }
+            instructions,
+            vec![
+                AssemblyInstruction::Mov {
+                    source: AssemblyOperand::Imm(1),
+                    destination: AssemblyOperand::Stack(-4),
+                },
+                AssemblyInstruction::Ret,
+            ]
         );
     }
 }
