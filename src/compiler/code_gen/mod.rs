@@ -112,10 +112,11 @@ fn convert_function(tacky_function: &TackyFunction) -> Result<AssemblyFunction, 
 
 /// Converts TACKY instructions into assembly instructions.
 ///
-/// Conversion takes three passes:
+/// Conversion takes four passes:
 /// 1. Convert TACKY instructions into assembly instructions. No physical registers are assigned during this pass.
 /// 2. Replace pseudo registers with physical registers in the assembly instructions.
-/// 3. Fixup instructions by allocating stack space and resolving memory-to-memory operations.
+/// 3. Allocate stack space for local variables.
+/// 4. Fixup instructions by allocating stack space and resolving memory-to-memory operations.
 ///
 /// # Arguments
 ///
@@ -128,7 +129,10 @@ fn convert_function(tacky_function: &TackyFunction) -> Result<AssemblyFunction, 
 fn convert_instructions(tacky_instructions: &Vec<TackyInstruction>) -> Vec<AssemblyInstruction> {
     let mut asm_instructions = instruction_conversion_pass(tacky_instructions);
     let stack_offset = pseudoregister_replacement_pass(&mut asm_instructions);
-    instruction_fixup_pass(&mut asm_instructions, stack_offset)
+    let mut final_instructions = vec![stack_allocation_pass(&stack_offset)];
+    let mut fixed_instructions = instruction_fixup_pass(&mut asm_instructions);
+    final_instructions.append(&mut fixed_instructions);
+    final_instructions
 }
 
 /// Executes the instruction conversion pass of the code generation pipeline.
@@ -355,21 +359,17 @@ fn convert_pseudo_register(
     }
 }
 
-/// Fixes up instructions by allocating stack space and resolving memory-to-memory operations.
+/// Fixes up instructions by resolving memory-to-memory operations.
 ///
 /// # Arguments
 ///
-/// * `asm_ast`: The `AssemblyAst` to process.
+/// * `instructions`: The `AssemblyInstruction`s to process.
 /// * `stack_offset`: The total stack space in bytes to allocate for the function.
 ///
 /// # Returns
 ///
 /// A new `AssemblyAst` with the instructions fixed up.
-fn instruction_fixup_pass(
-    instructions: &Vec<AssemblyInstruction>,
-    stack_offset: i32,
-) -> Vec<AssemblyInstruction> {
-    let instructions = allocate_stack_space(instructions.clone(), stack_offset.clone());
+fn instruction_fixup_pass(instructions: &Vec<AssemblyInstruction>) -> Vec<AssemblyInstruction> {
     let mut fixed_instructions = vec![];
     for instruction in instructions.iter() {
         fixed_instructions.append(&mut fixup_memory_to_memory_operation(instruction));
@@ -387,12 +387,10 @@ fn instruction_fixup_pass(
 /// # Returns
 ///
 /// A new vector of instructions with the `AllocateStack` instruction prepended
-fn allocate_stack_space(
-    mut instructions: Vec<AssemblyInstruction>,
-    stack_offset: i32,
-) -> Vec<AssemblyInstruction> {
-    instructions.insert(0, AssemblyInstruction::AllocateStack { stack_offset });
-    instructions
+fn stack_allocation_pass(stack_offset: &i32) -> AssemblyInstruction {
+    AssemblyInstruction::AllocateStack {
+        stack_offset: *stack_offset,
+    }
 }
 
 /// Fixes up memory-to-memory `Mov` operations by using a scratch register.
