@@ -276,6 +276,12 @@ fn convert_operand(tacky_operand: &TackyValue) -> AssemblyOperand {
 
 /// Replaces pseudo registers with physical registers in the assembly instructions.
 ///
+/// The following instructions should replace their pseudo registers with physical registers:
+/// * `AssemblyInstruction::Mov`
+/// * `AssemblyInstruction::Unary`
+/// * `AssemblyInstruction::Binary`
+/// * `AssemblyInstruction::Idiv`
+///
 /// # Arguments
 ///
 /// * `asm_ast` - The assembly AST to be modified.
@@ -298,7 +304,20 @@ fn pseudoregister_replacement_pass(instructions: &mut Vec<AssemblyInstruction>) 
             AssemblyInstruction::Unary { op: _, operand } => {
                 convert_pseudo_register(operand, &mut identifier_offsets, &mut offset_counter);
             }
-            _ => {}
+            AssemblyInstruction::Binary {
+                op: _,
+                source,
+                destination,
+            } => {
+                convert_pseudo_register(source, &mut identifier_offsets, &mut offset_counter);
+                convert_pseudo_register(destination, &mut identifier_offsets, &mut offset_counter);
+            }
+            AssemblyInstruction::Idiv { operand } => {
+                convert_pseudo_register(operand, &mut identifier_offsets, &mut offset_counter);
+            }
+            AssemblyInstruction::Cdq => {}
+            AssemblyInstruction::AllocateStack { stack_offset: _ } => {}
+            AssemblyInstruction::Ret => {}
         }
     }
     offset_counter
