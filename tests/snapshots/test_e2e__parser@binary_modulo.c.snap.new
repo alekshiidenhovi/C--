@@ -1,0 +1,22 @@
+---
+source: tests/test_e2e.rs
+assertion_line: 19
+expression: cmm_ast
+input_file: tests/test_programs/binary_modulo.c
+---
+Program {
+    function: Function {
+        identifier: "main",
+        body: Return {
+            expression: Binary {
+                operator: Remainder,
+                left: IntegerConstant {
+                    value: 3,
+                },
+                right: IntegerConstant {
+                    value: 2,
+                },
+            },
+        },
+    },
+}

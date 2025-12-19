@@ -1,0 +1,138 @@
+---
+source: tests/test_e2e.rs
+assertion_line: 33
+expression: asm_ast
+input_file: tests/test_programs/binary_op_precedence.c
+---
+Program {
+    function: Function {
+        identifier: "main",
+        instructions: [
+            AllocateStack {
+                stack_offset: -16,
+            },
+            Mov {
+                source: Imm(
+                    4,
+                ),
+                destination: Register(
+                    AX,
+                ),
+            },
+            Cdq,
+            Mov {
+                source: Imm(
+                    2,
+                ),
+                destination: Register(
+                    R10,
+                ),
+            },
+            Idiv {
+                operand: Register(
+                    R10,
+                ),
+            },
+            Mov {
+                source: Register(
+                    AX,
+                ),
+                destination: Stack(
+                    -4,
+                ),
+            },
+            Mov {
+                source: Imm(
+                    2,
+                ),
+                destination: Stack(
+                    -8,
+                ),
+            },
+            Binary {
+                op: Add,
+                source: Imm(
+                    1,
+                ),
+                destination: Stack(
+                    -8,
+                ),
+            },
+            Mov {
+                source: Imm(
+                    2,
+                ),
+                destination: Stack(
+                    -12,
+                ),
+            },
+            Mov {
+                source: Stack(
+                    -12,
+                ),
+                destination: Register(
+                    R11,
+                ),
+            },
+            Binary {
+                op: Mult,
+                source: Stack(
+                    -8,
+                ),
+                destination: Register(
+                    R11,
+                ),
+            },
+            Mov {
+                source: Register(
+                    R11,
+                ),
+                destination: Stack(
+                    -12,
+                ),
+            },
+            Mov {
+                source: Stack(
+                    -4,
+                ),
+                destination: Register(
+                    R10,
+                ),
+            },
+            Mov {
+                source: Register(
+                    R10,
+                ),
+                destination: Stack(
+                    -16,
+                ),
+            },
+            Mov {
+                source: Stack(
+                    -12,
+                ),
+                destination: Register(
+                    R10,
+                ),
+            },
+            Binary {
+                op: Add,
+                source: Register(
+                    R10,
+                ),
+                destination: Stack(
+                    -16,
+                ),
+            },
+            Mov {
+                source: Stack(
+                    -16,
+                ),
+                destination: Register(
+                    AX,
+                ),
+            },
+            Ret,
+        ],
+    },
+}

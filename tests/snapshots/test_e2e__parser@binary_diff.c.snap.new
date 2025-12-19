@@ -1,0 +1,22 @@
+---
+source: tests/test_e2e.rs
+assertion_line: 19
+expression: cmm_ast
+input_file: tests/test_programs/binary_diff.c
+---
+Program {
+    function: Function {
+        identifier: "main",
+        body: Return {
+            expression: Binary {
+                operator: Subtract,
+                left: IntegerConstant {
+                    value: 2,
+                },
+                right: IntegerConstant {
+                    value: 3,
+                },
+            },
+        },
+    },
+}

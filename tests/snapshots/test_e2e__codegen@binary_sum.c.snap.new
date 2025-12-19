@@ -1,0 +1,42 @@
+---
+source: tests/test_e2e.rs
+assertion_line: 33
+expression: asm_ast
+input_file: tests/test_programs/binary_sum.c
+---
+Program {
+    function: Function {
+        identifier: "main",
+        instructions: [
+            AllocateStack {
+                stack_offset: -4,
+            },
+            Mov {
+                source: Imm(
+                    2,
+                ),
+                destination: Stack(
+                    -4,
+                ),
+            },
+            Binary {
+                op: Add,
+                source: Imm(
+                    3,
+                ),
+                destination: Stack(
+                    -4,
+                ),
+            },
+            Mov {
+                source: Stack(
+                    -4,
+                ),
+                destination: Register(
+                    AX,
+                ),
+            },
+            Ret,
+        ],
+    },
+}

@@ -1,0 +1,26 @@
+---
+source: tests/test_e2e.rs
+assertion_line: 12
+expression: tokens
+input_file: tests/test_programs/binary_div.c
+---
+[
+    IntKeyword,
+    Identifier(
+        "main",
+    ),
+    OpenParen,
+    VoidKeyword,
+    CloseParen,
+    OpenBrace,
+    ReturnKeyword,
+    Constant(
+        4,
+    ),
+    ForwardSlash,
+    Constant(
+        2,
+    ),
+    Semicolon,
+    CloseBrace,
+]

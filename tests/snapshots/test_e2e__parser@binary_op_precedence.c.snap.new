@@ -1,0 +1,40 @@
+---
+source: tests/test_e2e.rs
+assertion_line: 19
+expression: cmm_ast
+input_file: tests/test_programs/binary_op_precedence.c
+---
+Program {
+    function: Function {
+        identifier: "main",
+        body: Return {
+            expression: Binary {
+                operator: Add,
+                left: Binary {
+                    operator: Divide,
+                    left: IntegerConstant {
+                        value: 4,
+                    },
+                    right: IntegerConstant {
+                        value: 2,
+                    },
+                },
+                right: Binary {
+                    operator: Multiply,
+                    left: IntegerConstant {
+                        value: 2,
+                    },
+                    right: Binary {
+                        operator: Add,
+                        left: IntegerConstant {
+                            value: 2,
+                        },
+                        right: IntegerConstant {
+                            value: 1,
+                        },
+                    },
+                },
+            },
+        },
+    },
+}

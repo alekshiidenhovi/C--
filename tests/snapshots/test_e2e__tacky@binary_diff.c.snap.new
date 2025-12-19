@@ -1,0 +1,30 @@
+---
+source: tests/test_e2e.rs
+assertion_line: 26
+expression: tacky_ast
+input_file: tests/test_programs/binary_diff.c
+---
+Program {
+    function: Function {
+        identifier: "main",
+        instructions: [
+            Binary {
+                operator: Subtract,
+                source1: Constant(
+                    2,
+                ),
+                source2: Constant(
+                    3,
+                ),
+                destination: Variable(
+                    "tmp.0",
+                ),
+            },
+            Return {
+                value: Variable(
+                    "tmp.0",
+                ),
+            },
+        ],
+    },
+}
