@@ -228,7 +228,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_valid_single_hyphen() {
+    fn test_parse_valid_single_hyphen() {
         let input = "-a";
         let parser = create_regex_parser(Regex::new(r"^-").unwrap(), Token::Hyphen);
         let result = parser(input);
@@ -237,7 +237,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_valid_double_hyphen() {
+    fn test_parse_valid_double_hyphen() {
         let input = "--a";
         let parser = create_regex_parser(Regex::new(r"^--").unwrap(), Token::DoubleHyphen);
         let result = parser(input);
@@ -246,7 +246,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_valid_return_keyword() {
+    fn test_parse_valid_return_keyword() {
         let input = "return 2;";
         let result = parse_identifier_or_keyword(input);
         assert!(result.is_ok());
@@ -254,7 +254,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_valid_void_keyword() {
+    fn test_parse_valid_void_keyword() {
         let input = "void";
         let result = parse_identifier_or_keyword(input);
         assert!(result.is_ok());
@@ -262,7 +262,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_valid_int_keyword() {
+    fn test_parse_valid_int_keyword() {
         let input = "int";
         let result = parse_identifier_or_keyword(input);
         assert!(result.is_ok());
@@ -270,7 +270,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_valid_identifier() {
+    fn test_parse_valid_identifier() {
         let input = "main";
         let result = parse_identifier_or_keyword(input);
         assert!(result.is_ok());
@@ -281,7 +281,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_invalid_identifier() {
+    fn test_parse_invalid_identifier() {
         assert!(parse_identifier_or_keyword("1_number_first_not_allowed").is_err());
     }
 }
