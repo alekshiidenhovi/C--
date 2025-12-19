@@ -58,9 +58,18 @@ pub fn tokenize(input_str: &str) -> Vec<Token> {
     let mut string_stream = input_str.to_string();
     let mut token_vec = Vec::new();
     let parsers: Vec<LexerParser> = vec![
+        // Custom parsers
         Box::new(parse_identifier_or_keyword),
         Box::new(parse_constant),
+        // Two character tokens
         create_regex_parser(Regex::new(r"^--").unwrap(), Token::DoubleHyphen),
+        create_regex_parser(Regex::new(r"^&&").unwrap(), Token::DoubleAmpersand),
+        create_regex_parser(Regex::new(r"^\|\|").unwrap(), Token::DoublePipe),
+        create_regex_parser(Regex::new(r"^==").unwrap(), Token::DoubleEqual),
+        create_regex_parser(Regex::new(r"^!=").unwrap(), Token::ExclamationEqual),
+        create_regex_parser(Regex::new(r"^<=").unwrap(), Token::LessThanEqual),
+        create_regex_parser(Regex::new(r"^>=").unwrap(), Token::GreaterThanEqual),
+        // Single character tokens
         create_regex_parser(Regex::new(r"^\-").unwrap(), Token::Hyphen),
         create_regex_parser(Regex::new(r"^\~").unwrap(), Token::Tilde),
         create_regex_parser(Regex::new(r"^\(").unwrap(), Token::OpenParen),
@@ -72,6 +81,9 @@ pub fn tokenize(input_str: &str) -> Vec<Token> {
         create_regex_parser(Regex::new(r"^\*").unwrap(), Token::Asterisk),
         create_regex_parser(Regex::new(r"^\/").unwrap(), Token::ForwardSlash),
         create_regex_parser(Regex::new(r"^\%").unwrap(), Token::Percent),
+        create_regex_parser(Regex::new(r"^\!").unwrap(), Token::ExclamationMark),
+        create_regex_parser(Regex::new(r"^<").unwrap(), Token::LessThan),
+        create_regex_parser(Regex::new(r"^>").unwrap(), Token::GreaterThan),
     ];
     loop {
         string_stream = string_stream.trim_start().to_string();
