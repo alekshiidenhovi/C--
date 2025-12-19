@@ -1,6 +1,6 @@
 use crate::compiler::code_gen::assembly_ast::{
-    AssemblyAst, AssemblyFunction, AssemblyInstruction, AssemblyOperand, AssemblyRegister,
-    AssemblyUnaryOperator,
+    AssemblyAst, AssemblyBinaryOperator, AssemblyFunction, AssemblyInstruction, AssemblyOperand,
+    AssemblyRegister, AssemblyUnaryOperator,
 };
 
 /// Emits assembly code from an abstract syntax tree.
@@ -75,18 +75,28 @@ fn format_instruction(instruction: &AssemblyInstruction) -> String {
             epilogue
         }
         AssemblyInstruction::Unary { op, operand } => wrap_instruction(
-            format!("{} {}", format_unary_operation(op), format_operand(operand)).as_str(),
+            format!("{} {}", format_unary_operator(op), format_operand(operand)).as_str(),
         ),
-        AssemblyInstruction::AllocateStack { stack_offset } => {
-            wrap_instruction(format!("subq ${}, %rsp", stack_offset).as_str())
-        }
         AssemblyInstruction::Binary {
             op,
             source,
             destination,
-        } => todo!(),
-        AssemblyInstruction::Idiv { operand } => todo!(),
-        AssemblyInstruction::Cdq => todo!(),
+        } => wrap_instruction(
+            format!(
+                "{} {}, {}",
+                format_binary_operator(op),
+                format_operand(source),
+                format_operand(destination)
+            )
+            .as_str(),
+        ),
+        AssemblyInstruction::Idiv { operand } => {
+            wrap_instruction(format!("idivl {}", format_operand(operand)).as_str())
+        }
+        AssemblyInstruction::AllocateStack { stack_offset } => {
+            wrap_instruction(format!("subq ${}, %rsp", stack_offset).as_str())
+        }
+        AssemblyInstruction::Cdq => wrap_instruction("cdq"),
     }
 }
 
@@ -99,10 +109,27 @@ fn format_instruction(instruction: &AssemblyInstruction) -> String {
 /// # Returns
 ///
 /// A string representing the unary operation.
-fn format_unary_operation(op: &AssemblyUnaryOperator) -> String {
+fn format_unary_operator(op: &AssemblyUnaryOperator) -> String {
     match op {
         AssemblyUnaryOperator::Neg => "negl".to_string(),
         AssemblyUnaryOperator::Not => "notl".to_string(),
+    }
+}
+
+/// Converts a `BinaryOp` to its corresponding string representation.
+///
+/// # Arguments
+///
+/// * `op`: The `BinaryOp` to convert.
+///
+/// # Returns
+///
+/// A string representing the binary operation.
+fn format_binary_operator(op: &AssemblyBinaryOperator) -> String {
+    match op {
+        AssemblyBinaryOperator::Add => "addl".to_string(),
+        AssemblyBinaryOperator::Sub => "subl".to_string(),
+        AssemblyBinaryOperator::Mult => "imull".to_string(),
     }
 }
 
@@ -138,9 +165,9 @@ fn format_operand(operand: &AssemblyOperand) -> String {
 fn format_register(register: &AssemblyRegister) -> String {
     match register {
         AssemblyRegister::AX => "%eax".to_string(),
+        AssemblyRegister::DX => "%edx".to_string(),
         AssemblyRegister::R10 => "%r10d".to_string(),
-        AssemblyRegister::DX => todo!(),
-        AssemblyRegister::R11 => todo!(),
+        AssemblyRegister::R11 => "%r11d".to_string(),
     }
 }
 
