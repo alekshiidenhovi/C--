@@ -81,28 +81,10 @@ use std::collections::HashMap;
 /// # Ok::<(), CodegenError>(())
 /// ```
 pub fn convert_ast(tacky_ast: TackyAst) -> Result<AssemblyAst, CodegenError> {
-    let mut asm_ast = match tacky_ast {
-        TackyAst::Program { function } => AssemblyAst::Program {
+    match tacky_ast {
+        TackyAst::Program { function } => Ok(AssemblyAst::Program {
             function: convert_function(&function)?,
-        },
-    };
-    match asm_ast {
-        AssemblyAst::Program { ref mut function } => match function {
-            AssemblyFunction::Function {
-                identifier,
-                instructions,
-            } => {
-                let stack_offset = replace_pseudo_registers(instructions);
-                let fixed_instructions = fixup_instructions(instructions, stack_offset);
-                let fixed_asm_ast = AssemblyAst::Program {
-                    function: AssemblyFunction::Function {
-                        identifier: identifier.to_string(),
-                        instructions: fixed_instructions,
-                    },
-                };
-                Ok(fixed_asm_ast)
-            }
-        },
+        }),
     }
 }
 
@@ -122,7 +104,7 @@ fn convert_function(tacky_function: &TackyFunction) -> Result<AssemblyFunction, 
             instructions: tacky_instructions,
         } => AssemblyFunction::Function {
             identifier: identifier.clone(),
-            instructions: convert_instructions(tacky_instructions),
+            instructions: convert_instructions(&tacky_instructions),
         },
     };
     Ok(function)
@@ -130,15 +112,40 @@ fn convert_function(tacky_function: &TackyFunction) -> Result<AssemblyFunction, 
 
 /// Converts TACKY instructions into assembly instructions.
 ///
+/// Conversion takes three passes:
+/// 1. Convert TACKY instructions into assembly instructions. No physical registers are assigned during this pass.
+/// 2. Replace pseudo registers with physical registers in the assembly instructions.
+/// 3. Fixup instructions by allocating stack space and resolving memory-to-memory operations.
+///
 /// # Arguments
 ///
-///  * `tacky_instructions` - A reference to the TACKY `TackyInstruction`s to convert.
+/// * `tacky_instructions` - A reference to the TACKY `TackyInstruction`s to convert.
 ///
 /// # Returns
 ///
 /// A `Result` containing a vector of `AssemblyInstruction`s on success,
 /// or a `CodegenError` on failure.
 fn convert_instructions(tacky_instructions: &Vec<TackyInstruction>) -> Vec<AssemblyInstruction> {
+    let mut asm_instructions = instruction_conversion_pass(tacky_instructions);
+    let stack_offset = pseudoregister_replacement_pass(&mut asm_instructions);
+    instruction_fixup_pass(&mut asm_instructions, stack_offset)
+}
+
+/// Executes the instruction conversion pass of the code generation pipeline.
+///
+/// Replaces TACKY instructions with equivalent assembly instructions. One TACKY instruction may result in multiple assembly instructions.
+///
+/// # Arguments
+///
+/// * `tacky_instructions` - A reference to the TACKY `TackyInstruction`s to convert.
+///
+/// # Returns
+///
+/// A `Result` containing a vector of `AssemblyInstruction`s on success,
+/// or a `CodegenError` on failure.
+fn instruction_conversion_pass(
+    tacky_instructions: &Vec<TackyInstruction>,
+) -> Vec<AssemblyInstruction> {
     let mut asm_instructions = vec![];
     for tacky_instruction in tacky_instructions.iter() {
         match tacky_instruction {
@@ -267,7 +274,7 @@ fn convert_operand(tacky_operand: &TackyValue) -> AssemblyOperand {
     }
 }
 
-/// Replaces pseudo registers with actual registers in the assembly AST.
+/// Replaces pseudo registers with physical registers in the assembly instructions.
 ///
 /// # Arguments
 ///
@@ -276,7 +283,7 @@ fn convert_operand(tacky_operand: &TackyValue) -> AssemblyOperand {
 /// # Returns
 ///
 /// The final stack offset after replacing pseudo registers.
-fn replace_pseudo_registers(instructions: &mut Vec<AssemblyInstruction>) -> i32 {
+fn pseudoregister_replacement_pass(instructions: &mut Vec<AssemblyInstruction>) -> i32 {
     let mut identifier_offsets: HashMap<String, i32> = HashMap::new();
     let mut offset_counter = 0;
     for instruction in instructions.iter_mut() {
@@ -339,7 +346,7 @@ fn convert_pseudo_register(
 /// # Returns
 ///
 /// A new `AssemblyAst` with the instructions fixed up.
-fn fixup_instructions(
+fn instruction_fixup_pass(
     instructions: &Vec<AssemblyInstruction>,
     stack_offset: i32,
 ) -> Vec<AssemblyInstruction> {
@@ -411,7 +418,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_convert_instructions_success() {
+    fn test_instruction_conversion_pass_success() {
         let identifier = "tmp.0".to_string();
         let tacky_instructions = vec![
             TackyInstruction::Unary {
@@ -423,7 +430,7 @@ mod tests {
                 value: TackyValue::Variable(identifier.clone()),
             },
         ];
-        let result = convert_instructions(&tacky_instructions);
+        let result = instruction_conversion_pass(&tacky_instructions);
         assert_eq!(
             result,
             vec![
@@ -445,7 +452,7 @@ mod tests {
     }
 
     #[test]
-    fn test_replace_pseudo_registers_success() {
+    fn test_pseudoregister_replacement_pass_success() {
         let pseudo_register_name = "tmp.0".to_string();
         let mut instructions = vec![
             AssemblyInstruction::Mov {
@@ -454,7 +461,7 @@ mod tests {
             },
             AssemblyInstruction::Ret,
         ];
-        let offset = replace_pseudo_registers(&mut instructions);
+        let offset = pseudoregister_replacement_pass(&mut instructions);
         assert_eq!(offset, -4);
         assert_eq!(
             instructions,
