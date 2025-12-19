@@ -1,19 +1,15 @@
 ---
 source: tests/test_e2e.rs
-assertion_line: 41
 expression: prettied_assembly_code
-input_file: tests/test_programs/binary_modulo.c
+input_file: tests/test_programs/binary_sum.c
 ---
     .globl _main
 _main:
     pushq %rbp
     movq %rsp, %rbp
     subq $-4, %rsp
-    movl $3, %eax
-    cdq
-    movl $2, %r10d
-    idivl %r10d
-    movl %edx, -4(%rbp)
+    movl $2, -4(%rbp)
+    addl $3, -4(%rbp)
     movl -4(%rbp), %eax
     movq %rbp, %rsp
     popq %rbp

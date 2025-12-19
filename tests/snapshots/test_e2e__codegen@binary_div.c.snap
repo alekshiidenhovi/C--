@@ -1,8 +1,7 @@
 ---
 source: tests/test_e2e.rs
-assertion_line: 33
 expression: asm_ast
-input_file: tests/test_programs/binary_mult.c
+input_file: tests/test_programs/binary_div.c
 ---
 Program {
     function: Function {
@@ -13,32 +12,29 @@ Program {
             },
             Mov {
                 source: Imm(
+                    4,
+                ),
+                destination: Register(
+                    AX,
+                ),
+            },
+            Cdq,
+            Mov {
+                source: Imm(
                     2,
                 ),
-                destination: Stack(
-                    -4,
+                destination: Register(
+                    R10,
                 ),
             },
-            Mov {
-                source: Stack(
-                    -4,
-                ),
-                destination: Register(
-                    R11,
-                ),
-            },
-            Binary {
-                op: Mult,
-                source: Imm(
-                    3,
-                ),
-                destination: Register(
-                    R11,
+            Idiv {
+                operand: Register(
+                    R10,
                 ),
             },
             Mov {
                 source: Register(
-                    R11,
+                    AX,
                 ),
                 destination: Stack(
                     -4,

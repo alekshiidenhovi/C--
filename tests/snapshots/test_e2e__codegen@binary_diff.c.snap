@@ -1,6 +1,5 @@
 ---
 source: tests/test_e2e.rs
-assertion_line: 33
 expression: asm_ast
 input_file: tests/test_programs/binary_diff.c
 ---

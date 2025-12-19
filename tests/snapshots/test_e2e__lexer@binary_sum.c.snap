@@ -1,8 +1,7 @@
 ---
 source: tests/test_e2e.rs
-assertion_line: 12
 expression: tokens
-input_file: tests/test_programs/binary_modulo.c
+input_file: tests/test_programs/binary_sum.c
 ---
 [
     IntKeyword,
@@ -15,11 +14,11 @@ input_file: tests/test_programs/binary_modulo.c
     OpenBrace,
     ReturnKeyword,
     Constant(
-        3,
-    ),
-    Percent,
-    Constant(
         2,
+    ),
+    Plus,
+    Constant(
+        3,
     ),
     Semicolon,
     CloseBrace,

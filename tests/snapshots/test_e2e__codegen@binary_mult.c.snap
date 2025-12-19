@@ -1,8 +1,7 @@
 ---
 source: tests/test_e2e.rs
-assertion_line: 33
 expression: asm_ast
-input_file: tests/test_programs/binary_sum.c
+input_file: tests/test_programs/binary_mult.c
 ---
 Program {
     function: Function {
@@ -19,10 +18,26 @@ Program {
                     -4,
                 ),
             },
+            Mov {
+                source: Stack(
+                    -4,
+                ),
+                destination: Register(
+                    R11,
+                ),
+            },
             Binary {
-                op: Add,
+                op: Mult,
                 source: Imm(
                     3,
+                ),
+                destination: Register(
+                    R11,
+                ),
+            },
+            Mov {
+                source: Register(
+                    R11,
                 ),
                 destination: Stack(
                     -4,

@@ -1,16 +1,18 @@
 ---
 source: tests/test_e2e.rs
-assertion_line: 41
 expression: prettied_assembly_code
-input_file: tests/test_programs/binary_diff.c
+input_file: tests/test_programs/binary_modulo.c
 ---
     .globl _main
 _main:
     pushq %rbp
     movq %rsp, %rbp
     subq $-4, %rsp
-    movl $2, -4(%rbp)
-    subl $3, -4(%rbp)
+    movl $3, %eax
+    cdq
+    movl $2, %r10d
+    idivl %r10d
+    movl %edx, -4(%rbp)
     movl -4(%rbp), %eax
     movq %rbp, %rsp
     popq %rbp

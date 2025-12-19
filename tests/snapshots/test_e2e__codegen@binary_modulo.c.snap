@@ -1,8 +1,7 @@
 ---
 source: tests/test_e2e.rs
-assertion_line: 33
 expression: asm_ast
-input_file: tests/test_programs/binary_div.c
+input_file: tests/test_programs/binary_modulo.c
 ---
 Program {
     function: Function {
@@ -13,7 +12,7 @@ Program {
             },
             Mov {
                 source: Imm(
-                    4,
+                    3,
                 ),
                 destination: Register(
                     AX,
@@ -35,7 +34,7 @@ Program {
             },
             Mov {
                 source: Register(
-                    AX,
+                    DX,
                 ),
                 destination: Stack(
                     -4,

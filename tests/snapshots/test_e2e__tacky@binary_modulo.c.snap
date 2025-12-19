@@ -1,20 +1,19 @@
 ---
 source: tests/test_e2e.rs
-assertion_line: 26
 expression: tacky_ast
-input_file: tests/test_programs/binary_sum.c
+input_file: tests/test_programs/binary_modulo.c
 ---
 Program {
     function: Function {
         identifier: "main",
         instructions: [
             Binary {
-                operator: Add,
+                operator: Remainder,
                 source1: Constant(
-                    2,
+                    3,
                 ),
                 source2: Constant(
-                    3,
+                    2,
                 ),
                 destination: Variable(
                     "tmp.0",

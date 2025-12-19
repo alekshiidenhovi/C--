@@ -1,8 +1,7 @@
 ---
 source: tests/test_e2e.rs
-assertion_line: 12
 expression: tokens
-input_file: tests/test_programs/binary_diff.c
+input_file: tests/test_programs/binary_mult.c
 ---
 [
     IntKeyword,
@@ -17,7 +16,7 @@ input_file: tests/test_programs/binary_diff.c
     Constant(
         2,
     ),
-    Hyphen,
+    Asterisk,
     Constant(
         3,
     ),

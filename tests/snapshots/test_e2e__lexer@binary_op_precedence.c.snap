@@ -1,8 +1,7 @@
 ---
 source: tests/test_e2e.rs
-assertion_line: 12
 expression: tokens
-input_file: tests/test_programs/binary_mult.c
+input_file: tests/test_programs/binary_op_precedence.c
 ---
 [
     IntKeyword,
@@ -15,12 +14,26 @@ input_file: tests/test_programs/binary_mult.c
     OpenBrace,
     ReturnKeyword,
     Constant(
+        4,
+    ),
+    ForwardSlash,
+    Constant(
+        2,
+    ),
+    Plus,
+    Constant(
         2,
     ),
     Asterisk,
+    OpenParen,
     Constant(
-        3,
+        2,
     ),
+    Plus,
+    Constant(
+        1,
+    ),
+    CloseParen,
     Semicolon,
     CloseBrace,
 ]
