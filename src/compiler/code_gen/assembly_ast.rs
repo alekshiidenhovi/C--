@@ -18,25 +18,25 @@ pub enum AssemblyFunction {
 /// Represents a single instruction in the assembly code.
 #[derive(Debug, PartialEq, Clone)]
 pub enum AssemblyInstruction {
-    /// Move operation: copies a value from a source operand to a destination operand.
+    /// Move instruction: copies a value from a source operand to a destination operand.
     Mov {
         source: AssemblyOperand,
         destination: AssemblyOperand,
     },
-    /// Unary operation: applies a unary operator to an operand.
+    /// Unary instruction: applies a unary operator to an operand.
     Unary {
         op: AssemblyUnaryOperator,
         operand: AssemblyOperand,
     },
-    /// Binary operation: applies a binary operator to two operands.
+    /// Binary instruction: applies a binary operator to two operands.
     Binary {
         op: AssemblyBinaryOperator,
         source: AssemblyOperand,
         destination: AssemblyOperand,
     },
-    /// Divide operation: divides an operand with values stored in %eax and %edx.
+    /// Divide instruction: divides an operand with values stored in %eax and %edx.
     Idiv { operand: AssemblyOperand },
-    /// Convert Doubleword to Quadword (CDQ) operation: performs sign extension on the value stored in %eax.
+    /// Convert Doubleword to Quadword (CDQ) instruction: performs sign extension on the value stored in %eax.
     Cdq,
     /// Allocate stack instruction: allocates a specified amount of stack space.
     AllocateStack { stack_offset: i32 },
