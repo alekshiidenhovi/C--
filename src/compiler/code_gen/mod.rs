@@ -500,4 +500,38 @@ mod tests {
             ]
         );
     }
+
+    #[test]
+    fn test_instruction_fixup_pass_success() {
+        let mut instructions = vec![
+            AssemblyInstruction::Mov {
+                source: AssemblyOperand::Imm(1),
+                destination: AssemblyOperand::Stack(-4),
+            },
+            AssemblyInstruction::Mov {
+                source: AssemblyOperand::Stack(-4),
+                destination: AssemblyOperand::Stack(-8),
+            },
+            AssemblyInstruction::Ret,
+        ];
+        let fixed_instructions = instruction_fixup_pass(&mut instructions);
+        assert_eq!(
+            fixed_instructions,
+            vec![
+                AssemblyInstruction::Mov {
+                    source: AssemblyOperand::Imm(1),
+                    destination: AssemblyOperand::Stack(-4),
+                },
+                AssemblyInstruction::Mov {
+                    source: AssemblyOperand::Stack(-4),
+                    destination: AssemblyOperand::Register(AssemblyRegister::R10),
+                },
+                AssemblyInstruction::Mov {
+                    source: AssemblyOperand::Register(AssemblyRegister::R10),
+                    destination: AssemblyOperand::Stack(-8),
+                },
+                AssemblyInstruction::Ret,
+            ]
+        );
+    }
 }
