@@ -381,7 +381,7 @@ fn convert_pseudo_register(
 fn instruction_fixup_pass(instructions: &Vec<AssemblyInstruction>) -> Vec<AssemblyInstruction> {
     let mut fixed_instructions = vec![];
     for instruction in instructions.iter() {
-        fixed_instructions.append(&mut fixup_memory_to_memory_operation(instruction));
+        fixed_instructions.append(&mut fixup_asm_instruction(instruction));
     }
     fixed_instructions
 }
@@ -402,9 +402,12 @@ fn stack_allocation_pass(stack_offset: &i32) -> AssemblyInstruction {
     }
 }
 
-/// Fixes up memory-to-memory `Mov` operations by using a scratch register.
+/// Fixes up incorrect assembly instructions. Correct instructions are returned as is.
 ///
-/// When a `Mov` instruction involves two memory operands, it's not directly supported by many architectures. This function replaces such an operation with two instructions: the first moves the source memory to a scratch register (R10),and the second moves the scratch register to the destination memory.
+/// Performs the following fixes:
+/// * Replaces memory-to-memory `Mov`, `Add`, and `Sub` operations by using an intermediate scratch register.
+/// * Moves constant values to scratch registers before `Idiv` operations.
+/// * Moves destination operand from a memory location to scratch register before `Mult` operations, and then moves the result back to the destination memory location.
 ///
 /// # Arguments
 ///
@@ -412,30 +415,81 @@ fn stack_allocation_pass(stack_offset: &i32) -> AssemblyInstruction {
 ///
 /// # Returns
 ///
-/// A `Vec<AssemblyInstruction>` containing the original instruction if no fixup was needed, or the sequence of two instructions if a memory-to-memory `Mov` was encountered.
-fn fixup_memory_to_memory_operation(
-    asm_instruction: &AssemblyInstruction,
-) -> Vec<AssemblyInstruction> {
-    let scratch_register_operand = AssemblyOperand::Register(AssemblyRegister::R10);
+/// A `Vec<AssemblyInstruction>` containing either the original instruction or the sequence of fixed instructions.
+fn fixup_asm_instruction(asm_instruction: &AssemblyInstruction) -> Vec<AssemblyInstruction> {
+    let register_r10 = AssemblyOperand::Register(AssemblyRegister::R10);
+    let register_r11 = AssemblyOperand::Register(AssemblyRegister::R11);
     match asm_instruction {
         AssemblyInstruction::Mov {
             source,
             destination,
         } => match (source, destination) {
             (AssemblyOperand::Stack(_), AssemblyOperand::Stack(_)) => {
-                let move1 = AssemblyInstruction::Mov {
+                let instr1 = AssemblyInstruction::Mov {
                     source: source.clone(),
-                    destination: scratch_register_operand.clone(),
+                    destination: register_r10.clone(),
                 };
-                let move2 = AssemblyInstruction::Mov {
-                    source: scratch_register_operand.clone(),
+                let instr2 = AssemblyInstruction::Mov {
+                    source: register_r10.clone(),
                     destination: destination.clone(),
                 };
-                vec![move1, move2]
+                vec![instr1, instr2]
             }
             _ => vec![asm_instruction.clone()],
         },
-        _ => vec![asm_instruction.clone()],
+        AssemblyInstruction::Binary {
+            op,
+            source,
+            destination,
+        } => match op {
+            AssemblyBinaryOperator::Add | AssemblyBinaryOperator::Sub => {
+                match (source, destination) {
+                    (AssemblyOperand::Stack(_), AssemblyOperand::Stack(_)) => {
+                        let instr1 = AssemblyInstruction::Mov {
+                            source: source.clone(),
+                            destination: register_r10.clone(),
+                        };
+                        let instr2 = AssemblyInstruction::Binary {
+                            op: op.clone(),
+                            source: register_r10.clone(),
+                            destination: destination.clone(),
+                        };
+                        vec![instr1, instr2]
+                    }
+                    _ => vec![asm_instruction.clone()],
+                }
+            }
+            AssemblyBinaryOperator::Mult => {
+                let instr1 = AssemblyInstruction::Mov {
+                    source: destination.clone(),
+                    destination: register_r11.clone(),
+                };
+                let instr2 = AssemblyInstruction::Binary {
+                    op: op.clone(),
+                    source: source.clone(),
+                    destination: register_r11.clone(),
+                };
+                let instr3 = AssemblyInstruction::Mov {
+                    source: register_r11.clone(),
+                    destination: destination.clone(),
+                };
+                vec![instr1, instr2, instr3]
+            }
+        },
+        AssemblyInstruction::Idiv { operand } => {
+            let instr1 = AssemblyInstruction::Mov {
+                source: operand.clone(),
+                destination: register_r10.clone(),
+            };
+            let instr2 = AssemblyInstruction::Idiv {
+                operand: register_r10,
+            };
+            vec![instr1, instr2]
+        }
+        AssemblyInstruction::Unary { op: _, operand: _ } => vec![asm_instruction.clone()],
+        AssemblyInstruction::Cdq => vec![asm_instruction.clone()],
+        AssemblyInstruction::AllocateStack { stack_offset: _ } => vec![asm_instruction.clone()],
+        AssemblyInstruction::Ret => vec![asm_instruction.clone()],
     }
 }
 
@@ -512,6 +566,16 @@ mod tests {
                 source: AssemblyOperand::Stack(-4),
                 destination: AssemblyOperand::Stack(-8),
             },
+            AssemblyInstruction::Binary {
+                op: AssemblyBinaryOperator::Add,
+                source: AssemblyOperand::Stack(-8),
+                destination: AssemblyOperand::Stack(-12),
+            },
+            AssemblyInstruction::Binary {
+                op: AssemblyBinaryOperator::Mult,
+                source: AssemblyOperand::Imm(2),
+                destination: AssemblyOperand::Stack(-12),
+            },
             AssemblyInstruction::Ret,
         ];
         let fixed_instructions = instruction_fixup_pass(&mut instructions);
@@ -529,6 +593,28 @@ mod tests {
                 AssemblyInstruction::Mov {
                     source: AssemblyOperand::Register(AssemblyRegister::R10),
                     destination: AssemblyOperand::Stack(-8),
+                },
+                AssemblyInstruction::Mov {
+                    source: AssemblyOperand::Stack(-8),
+                    destination: AssemblyOperand::Register(AssemblyRegister::R10),
+                },
+                AssemblyInstruction::Binary {
+                    op: AssemblyBinaryOperator::Add,
+                    source: AssemblyOperand::Register(AssemblyRegister::R10),
+                    destination: AssemblyOperand::Stack(-12),
+                },
+                AssemblyInstruction::Mov {
+                    source: AssemblyOperand::Stack(-12),
+                    destination: AssemblyOperand::Register(AssemblyRegister::R11),
+                },
+                AssemblyInstruction::Binary {
+                    op: AssemblyBinaryOperator::Mult,
+                    source: AssemblyOperand::Imm(2),
+                    destination: AssemblyOperand::Register(AssemblyRegister::R11),
+                },
+                AssemblyInstruction::Mov {
+                    source: AssemblyOperand::Register(AssemblyRegister::R11),
+                    destination: AssemblyOperand::Stack(-12),
                 },
                 AssemblyInstruction::Ret,
             ]
