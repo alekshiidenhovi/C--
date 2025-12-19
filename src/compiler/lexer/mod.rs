@@ -59,8 +59,8 @@ pub fn tokenize(input_str: &str) -> Vec<Token> {
     let mut token_vec = Vec::new();
     let parsers: Vec<LexerParser> = vec![
         Box::new(parse_identifier_or_keyword),
-        Box::new(parse_double_hyphen),
         Box::new(parse_constant),
+        create_regex_parser(Regex::new(r"^--").unwrap(), Token::DoubleHyphen),
         Box::new(create_character_parser('-', Token::Hyphen)),
         Box::new(create_character_parser('~', Token::Tilde)),
         Box::new(create_character_parser('(', Token::OpenParen)),
@@ -89,29 +89,33 @@ pub fn tokenize(input_str: &str) -> Vec<Token> {
     token_vec
 }
 
-/// Attempts to parse a double hyphen from the input string.
+/// Creates a new lexer parser based on a regex pattern.
 ///
 /// # Arguments
 ///
-/// * `input_str`: The input string to parse.
+/// * `pattern`: The regex pattern to match.
+/// * `token`: The token to return if the pattern matches.
 ///
 /// # Returns
 ///
-/// On successful parsing, return a tuple of remaining input string and the parsed double hyphen.
-/// On failure, returns a non-matching pattern error.
-fn parse_double_hyphen(input_str: &str) -> LexerParseResult<Token> {
-    static PATTERN: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^--").unwrap());
-    match PATTERN.captures(input_str) {
-        Some(matched) => {
-            let matched_str = &matched[0];
-            let remaining_str = input_str.strip_prefix(matched_str).unwrap().to_string();
-            let token = Token::DoubleHyphen;
-            Ok((remaining_str, token))
+/// A new lexer parser that matches the pattern and returns the given token.
+fn create_regex_parser(pattern: Regex, token: Token) -> LexerParser {
+    Box::new(move |input_str: &str| {
+        match pattern.captures(input_str) {
+            Some(matched) => {
+                let matched_str = &matched[0];
+                // Strip the matched prefix to get the remaining string
+                let remaining_str = input_str.strip_prefix(matched_str).unwrap().to_string();
+
+                // Clone the token because the closure captures it by value
+                // but needs to return it multiple times across different calls.
+                Ok((remaining_str, token.clone()))
+            }
+            None => Err(LexerError::NonmatchingPattern {
+                found: input_str.to_string(),
+            }),
         }
-        None => Err(LexerError::NonmatchingPattern {
-            found: input_str.to_string(),
-        }),
-    }
+    })
 }
 
 /// Attempts to parse an identifier or keyword from the input string.
@@ -279,7 +283,8 @@ mod tests {
     #[test]
     fn parse_valid_double_hyphen() {
         let input = "--";
-        let result = parse_double_hyphen(input);
+        let parser = create_regex_parser(Regex::new(r"^--").unwrap(), Token::DoubleHyphen);
+        let result = parser(input);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), (String::from(""), Token::DoubleHyphen));
     }
