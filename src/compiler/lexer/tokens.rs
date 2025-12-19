@@ -20,6 +20,15 @@ pub enum Token {
     Asterisk,
     ForwardSlash,
     Percent,
+    ExclamationMark,
+    DoubleAmpersand,
+    DoublePipe,
+    DoubleEqual,
+    ExclamationEqual,
+    LessThan,
+    GreaterThan,
+    LessThanEqual,
+    GreaterThanEqual,
 }
 
 impl Token {
@@ -63,6 +72,15 @@ impl Token {
             Token::Asterisk => TokenType::Asterisk,
             Token::ForwardSlash => TokenType::ForwardSlash,
             Token::Percent => TokenType::Percent,
+            Token::ExclamationMark => TokenType::ExclamationMark,
+            Token::DoubleAmpersand => TokenType::DoubleAmpersand,
+            Token::DoublePipe => TokenType::DoublePipe,
+            Token::DoubleEqual => TokenType::DoubleEqual,
+            Token::ExclamationEqual => TokenType::ExclamationEqual,
+            Token::LessThan => TokenType::LessThan,
+            Token::GreaterThan => TokenType::GreaterThan,
+            Token::LessThanEqual => TokenType::LessThanEqual,
+            Token::GreaterThanEqual => TokenType::GreaterThanEqual,
         }
     }
 
@@ -149,6 +167,15 @@ impl fmt::Display for Token {
             Token::Asterisk => write!(f, "Asterisk"),
             Token::ForwardSlash => write!(f, "ForwardSlash"),
             Token::Percent => write!(f, "Percent"),
+            Token::ExclamationMark => write!(f, "ExclamationMark"),
+            Token::DoubleAmpersand => write!(f, "DoubleAmpersand"),
+            Token::DoublePipe => write!(f, "DoublePipe"),
+            Token::DoubleEqual => write!(f, "DoubleEqual"),
+            Token::ExclamationEqual => write!(f, "ExclamationEqual"),
+            Token::LessThan => write!(f, "LessThan"),
+            Token::GreaterThan => write!(f, "GreaterThan"),
+            Token::LessThanEqual => write!(f, "LessThanEqual"),
+            Token::GreaterThanEqual => write!(f, "GreaterThanEqual"),
         }
     }
 }
@@ -173,6 +200,15 @@ pub enum TokenType {
     Asterisk,
     ForwardSlash,
     Percent,
+    ExclamationMark,
+    DoubleAmpersand,
+    DoublePipe,
+    DoubleEqual,
+    ExclamationEqual,
+    LessThan,
+    GreaterThan,
+    LessThanEqual,
+    GreaterThanEqual,
 }
 
 impl fmt::Display for TokenType {
@@ -195,6 +231,15 @@ impl fmt::Display for TokenType {
             TokenType::Asterisk => write!(f, "Asterisk"),
             TokenType::ForwardSlash => write!(f, "ForwardSlash"),
             TokenType::Percent => write!(f, "Percent"),
+            TokenType::ExclamationMark => write!(f, "ExclamationMark"),
+            TokenType::DoubleAmpersand => write!(f, "DoubleAmpersand"),
+            TokenType::DoublePipe => write!(f, "DoublePipe"),
+            TokenType::DoubleEqual => write!(f, "DoubleEqual"),
+            TokenType::ExclamationEqual => write!(f, "ExclamationEqual"),
+            TokenType::LessThan => write!(f, "LessThan"),
+            TokenType::GreaterThan => write!(f, "GreaterThan"),
+            TokenType::LessThanEqual => write!(f, "LessThanEqual"),
+            TokenType::GreaterThanEqual => write!(f, "GreaterThanEqual"),
         }
     }
 }
