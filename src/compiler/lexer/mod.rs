@@ -284,4 +284,34 @@ mod tests {
     fn test_parse_invalid_identifier() {
         assert!(parse_identifier_or_keyword("1_number_first_not_allowed").is_err());
     }
+
+    #[test]
+    fn test_parse_valid_logical_expression() {
+        let input = "(a && b)";
+        let tokens = tokenize(input);
+        assert_eq!(
+            tokens,
+            vec![
+                Token::OpenParen,
+                Token::Identifier(String::from("a")),
+                Token::DoubleAmpersand,
+                Token::Identifier(String::from("b")),
+                Token::CloseParen,
+            ]
+        );
+    }
+
+    #[test]
+    fn test_parse_valid_comparison_expression() {
+        let input = "a >= b";
+        let tokens = tokenize(input);
+        assert_eq!(
+            tokens,
+            vec![
+                Token::Identifier(String::from("a")),
+                Token::GreaterThanEqual,
+                Token::Identifier(String::from("b")),
+            ]
+        );
+    }
 }
