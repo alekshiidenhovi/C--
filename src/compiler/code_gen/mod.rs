@@ -250,6 +250,15 @@ fn convert_unary_operator(tacky_unary_operator: &TackyUnaryOperator) -> Assembly
     }
 }
 
+/// Converts a TackyBinaryOperator to an AssemblyBinaryOperator.
+///
+/// # Arguments
+///
+/// * `tacky_binary_operator`: A reference to the TackyBinaryOperator to convert.
+///
+/// # Returns
+///
+/// An `Option<AssemblyBinaryOperator>` representing the converted operator, or `None` if the conversion is not supported.
 fn convert_binary_operator(
     tacky_binary_operator: &TackyBinaryOperator,
 ) -> Option<AssemblyBinaryOperator> {
