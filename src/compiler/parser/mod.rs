@@ -486,10 +486,15 @@ mod tests {
             Token::DoubleAmpersand,
             Token::Constant(0),
             Token::CloseParen,
+            Token::Semicolon,
         ];
         let mut parser = Parser::new(tokens);
         let result = parser.parse_expression(0);
-        assert!(result.is_ok());
+        assert!(
+            result.is_ok(),
+            "Should be able to parse expression, got error: {:?}",
+            result
+        );
         assert_eq!(
             result.unwrap(),
             CmmExpression::Binary {
