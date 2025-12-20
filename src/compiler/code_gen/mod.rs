@@ -229,6 +229,14 @@ fn instruction_conversion_pass(
                     }
                 };
             }
+            TackyInstruction::Copy {
+                source,
+                destination,
+            } => todo!(),
+            TackyInstruction::Jump { target } => todo!(),
+            TackyInstruction::JumpIfZero { condition, target } => todo!(),
+            TackyInstruction::JumpIfNotZero { condition, target } => todo!(),
+            TackyInstruction::Label(label) => todo!(),
         }
     }
     asm_instructions
@@ -247,6 +255,7 @@ fn convert_unary_operator(tacky_unary_operator: &TackyUnaryOperator) -> Assembly
     match tacky_unary_operator {
         TackyUnaryOperator::Negate => AssemblyUnaryOperator::Neg,
         TackyUnaryOperator::Complement => AssemblyUnaryOperator::Not,
+        TackyUnaryOperator::Not => todo!(),
     }
 }
 
@@ -268,6 +277,12 @@ fn convert_binary_operator(
         TackyBinaryOperator::Multiply => Some(AssemblyBinaryOperator::Mult),
         TackyBinaryOperator::Divide => None,
         TackyBinaryOperator::Remainder => None,
+        TackyBinaryOperator::Equal => todo!(),
+        TackyBinaryOperator::NotEqual => todo!(),
+        TackyBinaryOperator::LessThan => todo!(),
+        TackyBinaryOperator::GreaterThan => todo!(),
+        TackyBinaryOperator::LessThanEqual => todo!(),
+        TackyBinaryOperator::GreaterThanEqual => todo!(),
     }
 }
 

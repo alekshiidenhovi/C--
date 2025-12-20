@@ -20,9 +20,9 @@ pub enum TackyFunction {
 /// Represents a single TACKY instruction.
 #[derive(Debug, Clone, PartialEq)]
 pub enum TackyInstruction {
-    /// An instruction that returns a value from the function.
+    /// Returns a value from the function.
     Return { value: TackyValue },
-    /// An instruction that performs a unary operation on a value.
+    /// Performs a unary operation on a value.
     Unary {
         /// The unary operator to be applied.
         operator: TackyUnaryOperator,
@@ -31,7 +31,7 @@ pub enum TackyInstruction {
         /// The destination where the result of the operation will be stored.
         destination: TackyValue,
     },
-    /// An instruction that performs a binary operation on two values.
+    /// Performs a binary operation on two values.
     Binary {
         /// The binary operator to be applied.
         operator: TackyBinaryOperator,
@@ -42,6 +42,31 @@ pub enum TackyInstruction {
         /// The destination where the result of the operation will be stored.
         destination: TackyValue,
     },
+    /// Copies a value from one variable to another.
+    Copy {
+        /// The source variable to be copied.
+        source: TackyValue,
+        /// The destination where the value will be stored.
+        destination: TackyValue,
+    },
+    /// Jumps to a label.
+    Jump { target: String },
+    /// Jumps to a label if a condition evaluates to zero.
+    JumpIfZero {
+        /// The condition to be evaluated.
+        condition: TackyValue,
+        /// Target label to jump to.
+        target: String,
+    },
+    /// Jumps to a label if a condition evaluates to a non-zero value.
+    JumpIfNotZero {
+        /// The condition to be evaluated.
+        condition: TackyValue,
+        /// Target label to jump to.
+        target: String,
+    },
+    /// Defines a label.
+    Label(String),
 }
 
 /// Represents a value within the TACKY IR.
@@ -60,6 +85,8 @@ pub enum TackyUnaryOperator {
     Complement,
     /// Arithmetic negation
     Negate,
+    /// Logical negation
+    Not,
 }
 
 /// Represents a binary operator within the TACKY IR.
@@ -70,4 +97,10 @@ pub enum TackyBinaryOperator {
     Multiply,
     Divide,
     Remainder,
+    Equal,
+    NotEqual,
+    LessThan,
+    GreaterThan,
+    LessThanEqual,
+    GreaterThanEqual,
 }
