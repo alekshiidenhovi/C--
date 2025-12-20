@@ -246,8 +246,13 @@ impl Parser {
         match token {
             Token::Hyphen => Ok(CmmUnaryOperator::Negate),
             Token::Tilde => Ok(CmmUnaryOperator::Complement),
+            Token::ExclamationMark => Ok(CmmUnaryOperator::Not),
             _ => Err(ParserError::UnexpectedToken {
-                expected: TokenTypeOption::Many(vec![TokenType::Hyphen, TokenType::Tilde]),
+                expected: TokenTypeOption::Many(vec![
+                    TokenType::Hyphen,
+                    TokenType::Tilde,
+                    TokenType::ExclamationMark,
+                ]),
                 actual: token.kind(),
             }),
         }
@@ -266,6 +271,14 @@ impl Parser {
             Token::Asterisk => Ok(CmmBinaryOperator::Multiply),
             Token::ForwardSlash => Ok(CmmBinaryOperator::Divide),
             Token::Percent => Ok(CmmBinaryOperator::Remainder),
+            Token::DoubleAmpersand => Ok(CmmBinaryOperator::And),
+            Token::DoublePipe => Ok(CmmBinaryOperator::Or),
+            Token::DoubleEqual => Ok(CmmBinaryOperator::Equal),
+            Token::ExclamationEqual => Ok(CmmBinaryOperator::NotEqual),
+            Token::LessThan => Ok(CmmBinaryOperator::LessThan),
+            Token::GreaterThan => Ok(CmmBinaryOperator::GreaterThan),
+            Token::LessThanEqual => Ok(CmmBinaryOperator::LessThanEqual),
+            Token::GreaterThanEqual => Ok(CmmBinaryOperator::GreaterThanEqual),
             _ => Err(ParserError::UnexpectedToken {
                 expected: TokenTypeOption::Many(vec![
                     TokenType::Plus,
@@ -273,6 +286,14 @@ impl Parser {
                     TokenType::Asterisk,
                     TokenType::ForwardSlash,
                     TokenType::Percent,
+                    TokenType::DoubleAmpersand,
+                    TokenType::DoublePipe,
+                    TokenType::DoubleEqual,
+                    TokenType::ExclamationEqual,
+                    TokenType::LessThan,
+                    TokenType::GreaterThan,
+                    TokenType::LessThanEqual,
+                    TokenType::GreaterThanEqual,
                 ]),
                 actual: token.kind(),
             }),

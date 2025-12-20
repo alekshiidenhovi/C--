@@ -43,6 +43,7 @@ pub enum CmmExpression {
 pub enum CmmUnaryOperator {
     Complement,
     Negate,
+    Not,
 }
 
 /// Represents a binary operator.
@@ -53,4 +54,12 @@ pub enum CmmBinaryOperator {
     Multiply,
     Divide,
     Remainder,
+    And,
+    Or,
+    Equal,
+    NotEqual,
+    GreaterThan,
+    LessThan,
+    GreaterThanEqual,
+    LessThanEqual,
 }

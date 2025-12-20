@@ -136,11 +136,19 @@ impl Token {
     /// ```
     pub fn get_binary_operator_precedence(&self) -> Result<u32, String> {
         let precedence = match self {
-            Token::Plus => 45,
-            Token::Hyphen => 45,
             Token::Asterisk => 50,
             Token::ForwardSlash => 50,
             Token::Percent => 50,
+            Token::Plus => 45,
+            Token::Hyphen => 45,
+            Token::LessThan => 35,
+            Token::GreaterThan => 35,
+            Token::LessThanEqual => 35,
+            Token::GreaterThanEqual => 35,
+            Token::DoubleEqual => 30,
+            Token::ExclamationEqual => 30,
+            Token::DoubleAmpersand => 10,
+            Token::DoublePipe => 5,
             _ => return Err(format!("Token {:?} is not a binary operator", self)),
         };
         Ok(precedence)

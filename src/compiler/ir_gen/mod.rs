@@ -163,6 +163,7 @@ impl TackyEmitter {
         match cmm_operator {
             CmmUnaryOperator::Complement => TackyUnaryOperator::Complement,
             CmmUnaryOperator::Negate => TackyUnaryOperator::Negate,
+            CmmUnaryOperator::Not => todo!(),
         }
     }
 
@@ -183,6 +184,7 @@ impl TackyEmitter {
             CmmBinaryOperator::Multiply => TackyBinaryOperator::Multiply,
             CmmBinaryOperator::Divide => TackyBinaryOperator::Divide,
             CmmBinaryOperator::Remainder => TackyBinaryOperator::Remainder,
+            _ => todo!(),
         }
     }
 
