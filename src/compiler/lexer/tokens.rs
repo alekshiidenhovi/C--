@@ -109,6 +109,14 @@ impl Token {
             Token::Asterisk => true,
             Token::ForwardSlash => true,
             Token::Percent => true,
+            Token::DoubleAmpersand => true,
+            Token::DoublePipe => true,
+            Token::DoubleEqual => true,
+            Token::ExclamationEqual => true,
+            Token::LessThan => true,
+            Token::GreaterThan => true,
+            Token::LessThanEqual => true,
+            Token::GreaterThanEqual => true,
             _ => false,
         }
     }
