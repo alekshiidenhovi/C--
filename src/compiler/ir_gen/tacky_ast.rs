@@ -42,7 +42,7 @@ pub enum TackyInstruction {
         /// The destination where the result of the operation will be stored.
         destination: TackyValue,
     },
-    /// Copies a value from one variable to another.
+    /// Copies a value to a variable.
     Copy {
         /// The source variable to be copied.
         source: TackyValue,

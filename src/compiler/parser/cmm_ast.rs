@@ -39,7 +39,7 @@ pub enum CmmExpression {
 }
 
 /// Represents a unary operator.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum CmmUnaryOperator {
     Complement,
     Negate,
@@ -47,7 +47,7 @@ pub enum CmmUnaryOperator {
 }
 
 /// Represents a binary operator.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum CmmBinaryOperator {
     Add,
     Subtract,

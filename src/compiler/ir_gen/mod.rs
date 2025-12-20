@@ -15,6 +15,8 @@ use tacky_ast::{
 pub struct TackyEmitter {
     /// A counter for temporary variables.
     temp_counter: usize,
+    /// A counter for labels.
+    label_counter: usize,
 }
 
 impl TackyEmitter {
@@ -24,7 +26,10 @@ impl TackyEmitter {
     ///
     /// A new `TackyEmitter` instance initialized with the provided C-- AST.
     pub fn new() -> Self {
-        Self { temp_counter: 0 }
+        Self {
+            temp_counter: 0,
+            label_counter: 0,
+        }
     }
 
     /// Converts the C-- AST into an intermediate TACKY representation.
@@ -132,20 +137,124 @@ impl TackyEmitter {
                 operator,
                 left,
                 right,
-            } => {
-                let source1 = self.emit_tacky(left, tacky_instructions)?;
-                let source2 = self.emit_tacky(right, tacky_instructions)?;
-                let destination_name = self.make_temporary();
-                let destination = TackyValue::Variable(destination_name);
-                let operator = self.convert_binary_operator(operator);
-                tacky_instructions.push(TackyInstruction::Binary {
-                    operator,
-                    source1,
-                    source2,
-                    destination: destination.clone(),
-                });
-                Ok(destination)
-            }
+            } => match operator {
+                CmmBinaryOperator::And => {
+                    let label_false_name = self.make_label("and_false");
+                    let label_end_name = self.make_label("and_end");
+
+                    // First condition
+                    let source1 = self.emit_tacky(left, tacky_instructions)?;
+                    let jump_false1 = TackyInstruction::JumpIfZero {
+                        condition: source1,
+                        target: label_false_name.clone(),
+                    };
+                    tacky_instructions.push(jump_false1);
+
+                    // Second condition, unless first condition is zero
+                    let source2 = self.emit_tacky(right, tacky_instructions)?;
+                    let jump_false2 = TackyInstruction::JumpIfZero {
+                        condition: source2,
+                        target: label_false_name.clone(),
+                    };
+                    tacky_instructions.push(jump_false2);
+
+                    let destination_name = self.make_temporary();
+
+                    // Return value if both conditions are non-zero
+                    let copy_true = TackyInstruction::Copy {
+                        source: TackyValue::Constant(1),
+                        destination: TackyValue::Variable(destination_name.clone()),
+                    };
+                    let jump_end = TackyInstruction::Jump {
+                        target: label_end_name.clone(),
+                    };
+
+                    // Return value if any condition is zero
+                    let label_false = TackyInstruction::Label(label_false_name);
+                    let copy_false = TackyInstruction::Copy {
+                        source: TackyValue::Constant(0),
+                        destination: TackyValue::Variable(destination_name.clone()),
+                    };
+                    let label_end = TackyInstruction::Label(label_end_name);
+                    tacky_instructions.push(copy_true);
+                    tacky_instructions.push(jump_end);
+                    tacky_instructions.push(label_false);
+                    tacky_instructions.push(copy_false);
+                    tacky_instructions.push(label_end);
+
+                    Ok(TackyValue::Variable(destination_name))
+                }
+                CmmBinaryOperator::Or => {
+                    let label_true_name = self.make_label("or_true");
+                    let label_end_name = self.make_label("or_end");
+
+                    // First condition
+                    let source1 = self.emit_tacky(left, tacky_instructions)?;
+                    let jump_true1 = TackyInstruction::JumpIfNotZero {
+                        condition: source1,
+                        target: label_true_name.clone(),
+                    };
+                    tacky_instructions.push(jump_true1);
+
+                    // Second condition, unless first condition is not zero
+                    let source2 = self.emit_tacky(right, tacky_instructions)?;
+                    let jump_true2 = TackyInstruction::JumpIfNotZero {
+                        condition: source2,
+                        target: label_true_name.clone(),
+                    };
+                    tacky_instructions.push(jump_true2);
+
+                    let destination_name = self.make_temporary();
+
+                    // Return value if both conditions are zero
+                    let copy_false = TackyInstruction::Copy {
+                        source: TackyValue::Constant(0),
+                        destination: TackyValue::Variable(destination_name.clone()),
+                    };
+                    let jump_end = TackyInstruction::Jump {
+                        target: label_end_name.clone(),
+                    };
+
+                    // Return value if any condition is non-zero
+                    let label_true = TackyInstruction::Label(label_true_name);
+                    let copy_true = TackyInstruction::Copy {
+                        source: TackyValue::Constant(1),
+                        destination: TackyValue::Variable(destination_name.clone()),
+                    };
+                    let label_end = TackyInstruction::Label(label_end_name);
+                    tacky_instructions.push(copy_false);
+                    tacky_instructions.push(jump_end);
+                    tacky_instructions.push(label_true);
+                    tacky_instructions.push(copy_true);
+                    tacky_instructions.push(label_end);
+
+                    Ok(TackyValue::Variable(destination_name))
+                }
+                CmmBinaryOperator::Equal
+                | CmmBinaryOperator::NotEqual
+                | CmmBinaryOperator::GreaterThan
+                | CmmBinaryOperator::LessThan
+                | CmmBinaryOperator::GreaterThanEqual
+                | CmmBinaryOperator::LessThanEqual
+                | CmmBinaryOperator::Add
+                | CmmBinaryOperator::Subtract
+                | CmmBinaryOperator::Multiply
+                | CmmBinaryOperator::Divide
+                | CmmBinaryOperator::Remainder => {
+                    let source1 = self.emit_tacky(left, tacky_instructions)?;
+                    let source2 = self.emit_tacky(right, tacky_instructions)?;
+                    let destination_name = self.make_temporary();
+                    let destination = TackyValue::Variable(destination_name);
+                    let operator = self.convert_binary_operator(operator)?;
+                    tacky_instructions.push(TackyInstruction::Binary {
+                        operator,
+                        source1,
+                        source2,
+                        destination: destination.clone(),
+                    });
+                    Ok(destination)
+                }
+            },
         }
     }
 
@@ -163,7 +272,7 @@ impl TackyEmitter {
         match cmm_operator {
             CmmUnaryOperator::Complement => TackyUnaryOperator::Complement,
             CmmUnaryOperator::Negate => TackyUnaryOperator::Negate,
-            CmmUnaryOperator::Not => todo!(),
+            CmmUnaryOperator::Not => TackyUnaryOperator::Not,
         }
     }
 
@@ -177,18 +286,31 @@ impl TackyEmitter {
     ///
     /// A `Result` containing the generated `TackyBinaryOperator` on success,
     /// or a `CodegenError` on failure.
-    fn convert_binary_operator(&self, cmm_operator: &CmmBinaryOperator) -> TackyBinaryOperator {
+    fn convert_binary_operator(
+        &self,
+        cmm_operator: &CmmBinaryOperator,
+    ) -> Result<TackyBinaryOperator, IRConversionError> {
         match cmm_operator {
-            CmmBinaryOperator::Add => TackyBinaryOperator::Add,
-            CmmBinaryOperator::Subtract => TackyBinaryOperator::Subtract,
-            CmmBinaryOperator::Multiply => TackyBinaryOperator::Multiply,
-            CmmBinaryOperator::Divide => TackyBinaryOperator::Divide,
-            CmmBinaryOperator::Remainder => TackyBinaryOperator::Remainder,
-            _ => todo!(),
+            CmmBinaryOperator::Add => Ok(TackyBinaryOperator::Add),
+            CmmBinaryOperator::Subtract => Ok(TackyBinaryOperator::Subtract),
+            CmmBinaryOperator::Multiply => Ok(TackyBinaryOperator::Multiply),
+            CmmBinaryOperator::Divide => Ok(TackyBinaryOperator::Divide),
+            CmmBinaryOperator::Remainder => Ok(TackyBinaryOperator::Remainder),
+            CmmBinaryOperator::Equal => Ok(TackyBinaryOperator::Equal),
+            CmmBinaryOperator::NotEqual => Ok(TackyBinaryOperator::NotEqual),
+            CmmBinaryOperator::GreaterThan => Ok(TackyBinaryOperator::GreaterThan),
+            CmmBinaryOperator::LessThan => Ok(TackyBinaryOperator::LessThan),
+            CmmBinaryOperator::GreaterThanEqual => Ok(TackyBinaryOperator::GreaterThanEqual),
+            CmmBinaryOperator::LessThanEqual => Ok(TackyBinaryOperator::LessThanEqual),
+            CmmBinaryOperator::And | CmmBinaryOperator::Or => {
+                Err(IRConversionError::UnsupportedBinaryOperatorConversion {
+                    operator: cmm_operator.clone(),
+                })
+            }
         }
     }
 
-    /// Generates a name for a temporary TACKY variable.
+    /// Generates a unique name for a temporary TACKY variable.
     ///
     /// Side effect: increments the temporary variable counter.
     ///
@@ -199,6 +321,23 @@ impl TackyEmitter {
         let temp_name = format!("tmp.{}", self.temp_counter);
         self.temp_counter += 1;
         temp_name
+    }
+
+    /// Generates a unique label string by appending a counter to a base name.
+    ///
+    /// Side effect: increments the label counter.
+    ///
+    /// # Arguments
+    ///
+    /// * `label_name`: The base name for the label.
+    ///
+    /// # Returns
+    ///
+    /// A unique label string (e.g., "myLabel0", "myLabel1").
+    fn make_label(&mut self, label_name: &str) -> String {
+        let label = format!("{}{}", label_name, self.label_counter);
+        self.label_counter += 1;
+        label
     }
 }
 
@@ -319,6 +458,94 @@ mod tests {
                 source2: TackyValue::Constant(2),
                 destination: TackyValue::Variable(String::from("tmp.0")),
             }]
+        );
+    }
+
+    #[test]
+    fn test_emit_tacky_and_operation() {
+        let mut tacky_emitter = TackyEmitter::new();
+        let cmm_expression = CmmExpression::Binary {
+            operator: CmmBinaryOperator::And,
+            left: Box::new(CmmExpression::IntegerConstant { value: 1 }),
+            right: Box::new(CmmExpression::IntegerConstant { value: 2 }),
+        };
+        let mut tacky_instructions = vec![];
+        let tacky_value = tacky_emitter.emit_tacky(&cmm_expression, &mut tacky_instructions);
+
+        assert_eq!(tacky_value, Ok(TackyValue::Variable(String::from("tmp.0"))));
+        assert_eq!(
+            tacky_instructions,
+            vec![
+                TackyInstruction::JumpIfZero {
+                    condition: TackyValue::Constant(1),
+                    target: String::from("and_false0"),
+                },
+                TackyInstruction::JumpIfZero {
+                    condition: TackyValue::Constant(2),
+                    target: String::from("and_false0"),
+                },
+                TackyInstruction::Copy {
+                    source: TackyValue::Constant(1),
+                    destination: TackyValue::Variable(String::from("tmp.0")),
+                },
+                TackyInstruction::Jump {
+                    target: String::from("and_end1"),
+                },
+                TackyInstruction::Label(String::from("and_false0")),
+                TackyInstruction::Copy {
+                    source: TackyValue::Constant(0),
+                    destination: TackyValue::Variable(String::from("tmp.0")),
+                },
+                TackyInstruction::Label(String::from("and_end1")),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_emit_tacky_or_operation() {
+        let mut tacky_emitter = TackyEmitter::new();
+        let cmm_expression = CmmExpression::Binary {
+            operator: CmmBinaryOperator::Or,
+            left: Box::new(CmmExpression::Unary {
+                operator: CmmUnaryOperator::Negate,
+                expression: Box::new(CmmExpression::IntegerConstant { value: 1 }),
+            }),
+            right: Box::new(CmmExpression::IntegerConstant { value: 2 }),
+        };
+        let mut tacky_instructions = vec![];
+        let tacky_value = tacky_emitter.emit_tacky(&cmm_expression, &mut tacky_instructions);
+
+        assert_eq!(tacky_value, Ok(TackyValue::Variable(String::from("tmp.1"))));
+        assert_eq!(
+            tacky_instructions,
+            vec![
+                TackyInstruction::Unary {
+                    operator: TackyUnaryOperator::Negate,
+                    source: TackyValue::Constant(1),
+                    destination: TackyValue::Variable(String::from("tmp.0")),
+                },
+                TackyInstruction::JumpIfNotZero {
+                    condition: TackyValue::Variable(String::from("tmp.0")),
+                    target: String::from("or_true0"),
+                },
+                TackyInstruction::JumpIfNotZero {
+                    condition: TackyValue::Constant(2),
+                    target: String::from("or_true0"),
+                },
+                TackyInstruction::Copy {
+                    source: TackyValue::Constant(0),
+                    destination: TackyValue::Variable(String::from("tmp.1")),
+                },
+                TackyInstruction::Jump {
+                    target: String::from("or_end1"),
+                },
+                TackyInstruction::Label(String::from("or_true0")),
+                TackyInstruction::Copy {
+                    source: TackyValue::Constant(1),
+                    destination: TackyValue::Variable(String::from("tmp.1")),
+                },
+                TackyInstruction::Label(String::from("or_end1")),
+            ]
         );
     }
 
