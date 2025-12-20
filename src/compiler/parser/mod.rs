@@ -192,7 +192,7 @@ impl Parser {
         let token = self.peek_token()?;
         match token {
             Token::Constant(_) => self.parse_constant_integer_factor(),
-            Token::Hyphen | Token::Tilde => self.parse_unary_factor(),
+            Token::Hyphen | Token::Tilde | Token::ExclamationMark => self.parse_unary_factor(),
             Token::OpenParen => self.parse_parenthesized_expression(),
             _ => Err(ParserError::UnexpectedToken {
                 expected: TokenTypeOption::Many(vec![
