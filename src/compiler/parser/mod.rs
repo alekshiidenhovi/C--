@@ -467,6 +467,56 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_ampersand_precedence() {
+        let tokens = vec![
+            Token::OpenParen,
+            Token::Constant(10),
+            Token::DoubleAmpersand,
+            Token::Constant(0),
+            Token::CloseParen,
+            Token::Plus,
+            Token::OpenParen,
+            Token::Constant(0),
+            Token::DoubleAmpersand,
+            Token::Constant(4),
+            Token::CloseParen,
+            Token::Plus,
+            Token::OpenParen,
+            Token::Constant(0),
+            Token::DoubleAmpersand,
+            Token::Constant(0),
+            Token::CloseParen,
+        ];
+        let mut parser = Parser::new(tokens);
+        let result = parser.parse_expression(0);
+        assert!(result.is_ok());
+        assert_eq!(
+            result.unwrap(),
+            CmmExpression::Binary {
+                operator: CmmBinaryOperator::Add,
+                left: Box::new(CmmExpression::Binary {
+                    operator: CmmBinaryOperator::Add,
+                    left: Box::new(CmmExpression::Binary {
+                        operator: CmmBinaryOperator::And,
+                        left: Box::new(CmmExpression::IntegerConstant { value: 10 }),
+                        right: Box::new(CmmExpression::IntegerConstant { value: 0 }),
+                    }),
+                    right: Box::new(CmmExpression::Binary {
+                        operator: CmmBinaryOperator::And,
+                        left: Box::new(CmmExpression::IntegerConstant { value: 0 }),
+                        right: Box::new(CmmExpression::IntegerConstant { value: 4 }),
+                    }),
+                }),
+                right: Box::new(CmmExpression::Binary {
+                    operator: CmmBinaryOperator::And,
+                    left: Box::new(CmmExpression::IntegerConstant { value: 0 }),
+                    right: Box::new(CmmExpression::IntegerConstant { value: 0 }),
+                }),
+            }
+        );
+    }
+
+    #[test]
     fn test_parse_valid_parenthesized_expression() {
         let tokens = vec![
             Token::OpenParen,
