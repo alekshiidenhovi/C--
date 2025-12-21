@@ -34,14 +34,50 @@ pub enum AssemblyInstruction {
         source: AssemblyOperand,
         destination: AssemblyOperand,
     },
+    /// Compare instruction: compares two operands.
+    Cmp {
+        left: AssemblyOperand,
+        right: AssemblyOperand,
+    },
     /// Divide instruction: divides an operand with values stored in %eax and %edx.
     Idiv { operand: AssemblyOperand },
     /// Convert Doubleword to Quadword (CDQ) instruction: performs sign extension on the value stored in %eax.
     Cdq,
-    /// Allocate stack instruction: allocates a specified amount of stack space.
+    /// Unconditional jump instruction: jumps to a specified label.
+    Jmp { label: String },
+    /// Conditional jump instruction: jumps to a specified label if a condition is met.
+    JmpCC {
+        condition: AssemblyConditionCode,
+        label: String,
+    },
+    /// Set instruction: sets the value of a register/memory based on RFLAGS if a condition is met.
+    SetCC {
+        condition: AssemblyConditionCode,
+        operand: AssemblyOperand,
+    },
+    /// Label pseudo-instruction: represents a label in the assembly code.
+    Label(String),
+    /// Stack allocation instruction: allocates a specified amount of stack space.
     AllocateStack { stack_offset: i32 },
     /// Return instruction: signifies the end of a function execution.
     Ret,
+}
+
+/// Represents a condition code
+#[derive(Debug, PartialEq, Clone)]
+pub enum AssemblyConditionCode {
+    /// Equal
+    E,
+    /// Not equal
+    NE,
+    /// Greater than
+    G,
+    /// Less than
+    L,
+    /// Greater than or equal
+    GE,
+    /// Less than or equal
+    LE,
 }
 
 /// Represents an unary operator.

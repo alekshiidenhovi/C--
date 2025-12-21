@@ -68,12 +68,6 @@ fn format_instruction(instruction: &AssemblyInstruction) -> String {
             )
             .as_str(),
         ),
-        AssemblyInstruction::Ret => {
-            let mut epilogue = wrap_instruction("movq %rbp, %rsp").to_string();
-            epilogue.push_str(wrap_instruction("popq %rbp").as_str());
-            epilogue.push_str(wrap_instruction("ret").as_str());
-            epilogue
-        }
         AssemblyInstruction::Unary { op, operand } => wrap_instruction(
             format!("{} {}", format_unary_operator(op), format_operand(operand)).as_str(),
         ),
@@ -90,6 +84,7 @@ fn format_instruction(instruction: &AssemblyInstruction) -> String {
             )
             .as_str(),
         ),
+        AssemblyInstruction::Cmp { left, right } => todo!(),
         AssemblyInstruction::Idiv { operand } => {
             wrap_instruction(format!("idivl {}", format_operand(operand)).as_str())
         }
@@ -97,6 +92,16 @@ fn format_instruction(instruction: &AssemblyInstruction) -> String {
             wrap_instruction(format!("subq ${}, %rsp", stack_offset).as_str())
         }
         AssemblyInstruction::Cdq => wrap_instruction("cdq"),
+        AssemblyInstruction::Jmp { label } => todo!(),
+        AssemblyInstruction::JmpCC { condition, label } => todo!(),
+        AssemblyInstruction::SetCC { condition, operand } => todo!(),
+        AssemblyInstruction::Label(label) => todo!(),
+        AssemblyInstruction::Ret => {
+            let mut epilogue = wrap_instruction("movq %rbp, %rsp").to_string();
+            epilogue.push_str(wrap_instruction("popq %rbp").as_str());
+            epilogue.push_str(wrap_instruction("ret").as_str());
+            epilogue
+        }
     }
 }
 

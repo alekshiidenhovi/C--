@@ -6,8 +6,8 @@ use crate::compiler::ir_gen::tacky_ast::{
     TackyAst, TackyBinaryOperator, TackyFunction, TackyInstruction, TackyUnaryOperator, TackyValue,
 };
 use assembly_ast::{
-    AssemblyAst, AssemblyBinaryOperator, AssemblyFunction, AssemblyInstruction, AssemblyOperand,
-    AssemblyRegister, AssemblyUnaryOperator,
+    AssemblyAst, AssemblyBinaryOperator, AssemblyConditionCode, AssemblyFunction,
+    AssemblyInstruction, AssemblyOperand, AssemblyRegister, AssemblyUnaryOperator,
 };
 use errors::CodegenError;
 use std::collections::HashMap;
@@ -104,7 +104,7 @@ fn convert_function(tacky_function: &TackyFunction) -> Result<AssemblyFunction, 
             instructions: tacky_instructions,
         } => AssemblyFunction::Function {
             identifier: identifier.clone(),
-            instructions: convert_instructions(&tacky_instructions),
+            instructions: convert_instructions(&tacky_instructions)?,
         },
     };
     Ok(function)
@@ -126,13 +126,15 @@ fn convert_function(tacky_function: &TackyFunction) -> Result<AssemblyFunction, 
 ///
 /// A `Result` containing a vector of `AssemblyInstruction`s on success,
 /// or a `CodegenError` on failure.
-fn convert_instructions(tacky_instructions: &Vec<TackyInstruction>) -> Vec<AssemblyInstruction> {
-    let mut asm_instructions = instruction_conversion_pass(tacky_instructions);
+fn convert_instructions(
+    tacky_instructions: &Vec<TackyInstruction>,
+) -> Result<Vec<AssemblyInstruction>, CodegenError> {
+    let mut asm_instructions = instruction_conversion_pass(tacky_instructions)?;
     let stack_offset = pseudoregister_replacement_pass(&mut asm_instructions);
     let mut final_instructions = vec![stack_allocation_pass(&stack_offset)];
     let mut fixed_instructions = instruction_fixup_pass(&mut asm_instructions);
     final_instructions.append(&mut fixed_instructions);
-    final_instructions
+    Ok(final_instructions)
 }
 
 /// Executes the instruction conversion pass of the code generation pipeline.
@@ -149,7 +151,7 @@ fn convert_instructions(tacky_instructions: &Vec<TackyInstruction>) -> Vec<Assem
 /// or a `CodegenError` on failure.
 fn instruction_conversion_pass(
     tacky_instructions: &Vec<TackyInstruction>,
-) -> Vec<AssemblyInstruction> {
+) -> Result<Vec<AssemblyInstruction>, CodegenError> {
     let mut asm_instructions = vec![];
     for tacky_instruction in tacky_instructions.iter() {
         match tacky_instruction {
@@ -166,39 +168,75 @@ fn instruction_conversion_pass(
                 operator,
                 source,
                 destination,
-            } => {
-                let mov_instruction = AssemblyInstruction::Mov {
-                    source: convert_operand(&source),
-                    destination: convert_operand(&destination),
-                };
-                let unary_instruction = AssemblyInstruction::Unary {
-                    op: convert_unary_operator(&operator),
-                    operand: convert_operand(&destination),
-                };
-                asm_instructions.push(mov_instruction);
-                asm_instructions.push(unary_instruction);
-            }
+            } => match operator {
+                TackyUnaryOperator::Not => {
+                    let cmp_instruction = AssemblyInstruction::Cmp {
+                        left: AssemblyOperand::Imm(0),
+                        right: convert_operand(&source),
+                    };
+                    let mov_instruction = AssemblyInstruction::Mov {
+                        source: AssemblyOperand::Imm(0),
+                        destination: convert_operand(&destination),
+                    };
+                    let set_instruction = AssemblyInstruction::SetCC {
+                        condition: AssemblyConditionCode::E,
+                        operand: convert_operand(&destination),
+                    };
+                    asm_instructions.push(cmp_instruction);
+                    asm_instructions.push(mov_instruction);
+                    asm_instructions.push(set_instruction);
+                }
+                TackyUnaryOperator::Complement | TackyUnaryOperator::Negate => {
+                    let unary_op = match operator {
+                        TackyUnaryOperator::Complement => AssemblyUnaryOperator::Not,
+                        TackyUnaryOperator::Negate => AssemblyUnaryOperator::Neg,
+                        _ => unreachable!(
+                            "The other unary operators should have been handled by the previous match arm"
+                        ),
+                    };
+                    let mov_instruction = AssemblyInstruction::Mov {
+                        source: convert_operand(&source),
+                        destination: convert_operand(&destination),
+                    };
+                    let unary_instruction = AssemblyInstruction::Unary {
+                        op: unary_op,
+                        operand: convert_operand(&destination),
+                    };
+                    asm_instructions.push(mov_instruction);
+                    asm_instructions.push(unary_instruction);
+                }
+            },
             TackyInstruction::Binary {
                 operator,
                 source1,
                 source2,
                 destination,
             } => {
-                match convert_binary_operator(operator) {
-                    Some(asm_binary_operator) => {
+                match operator {
+                    TackyBinaryOperator::Add
+                    | TackyBinaryOperator::Subtract
+                    | TackyBinaryOperator::Multiply => {
+                        let binary_op = match operator {
+                            TackyBinaryOperator::Add => AssemblyBinaryOperator::Add,
+                            TackyBinaryOperator::Subtract => AssemblyBinaryOperator::Sub,
+                            TackyBinaryOperator::Multiply => AssemblyBinaryOperator::Mult,
+                            _ => unreachable!(
+                                "The other binary operators should have been handled by the previous match arm"
+                            ),
+                        };
                         let mov_instruction = AssemblyInstruction::Mov {
                             source: convert_operand(&source1),
                             destination: convert_operand(&destination),
                         };
                         let binary_instruction = AssemblyInstruction::Binary {
-                            op: asm_binary_operator,
+                            op: binary_op,
                             source: convert_operand(&source2),
                             destination: convert_operand(&destination),
                         };
                         asm_instructions.push(mov_instruction);
                         asm_instructions.push(binary_instruction);
                     }
-                    None => {
+                    TackyBinaryOperator::Divide | TackyBinaryOperator::Remainder => {
                         let mov_to_reg_instruction = AssemblyInstruction::Mov {
                             source: convert_operand(&source1),
                             destination: AssemblyOperand::Register(AssemblyRegister::AX),
@@ -227,62 +265,92 @@ fn instruction_conversion_pass(
                         asm_instructions.push(idiv_instruction);
                         asm_instructions.push(mov_from_reg_instruction);
                     }
+                    TackyBinaryOperator::Equal
+                    | TackyBinaryOperator::NotEqual
+                    | TackyBinaryOperator::GreaterThan
+                    | TackyBinaryOperator::LessThan
+                    | TackyBinaryOperator::GreaterThanEqual
+                    | TackyBinaryOperator::LessThanEqual => {
+                        let cmp_instruction = AssemblyInstruction::Cmp {
+                            left: convert_operand(&source2),
+                            right: convert_operand(&source1),
+                        };
+                        let mov_instruction = AssemblyInstruction::Mov {
+                            source: AssemblyOperand::Imm(0),
+                            destination: convert_operand(&destination),
+                        };
+                        let set_instruction = AssemblyInstruction::SetCC {
+                            condition: convert_condition_code(&operator)?,
+                            operand: convert_operand(&destination),
+                        };
+                        asm_instructions.push(cmp_instruction);
+                        asm_instructions.push(mov_instruction);
+                        asm_instructions.push(set_instruction);
+                    }
                 };
             }
             TackyInstruction::Copy {
                 source,
                 destination,
-            } => todo!(),
-            TackyInstruction::Jump { target } => todo!(),
-            TackyInstruction::JumpIfZero { condition, target } => todo!(),
-            TackyInstruction::JumpIfNotZero { condition, target } => todo!(),
-            TackyInstruction::Label(label) => todo!(),
+            } => {
+                let mov_instruction = AssemblyInstruction::Mov {
+                    source: convert_operand(&source),
+                    destination: convert_operand(&destination),
+                };
+                asm_instructions.push(mov_instruction);
+            }
+            TackyInstruction::Jump { target } => {
+                let jmp_instruction = AssemblyInstruction::Jmp {
+                    label: target.clone(),
+                };
+                asm_instructions.push(jmp_instruction);
+            }
+            TackyInstruction::JumpIfZero { condition, target } => {
+                let cmp_instruction = AssemblyInstruction::Cmp {
+                    left: AssemblyOperand::Imm(0),
+                    right: convert_operand(&condition),
+                };
+                let jmp_instruction = AssemblyInstruction::JmpCC {
+                    condition: AssemblyConditionCode::E,
+                    label: target.clone(),
+                };
+                asm_instructions.push(cmp_instruction);
+                asm_instructions.push(jmp_instruction);
+            }
+            TackyInstruction::JumpIfNotZero { condition, target } => {
+                let cmp_instruction = AssemblyInstruction::Cmp {
+                    left: AssemblyOperand::Imm(0),
+                    right: convert_operand(&condition),
+                };
+                let jmp_instruction = AssemblyInstruction::JmpCC {
+                    condition: AssemblyConditionCode::NE,
+                    label: target.clone(),
+                };
+                asm_instructions.push(cmp_instruction);
+                asm_instructions.push(jmp_instruction);
+            }
+            TackyInstruction::Label(label) => {
+                let label_instruction = AssemblyInstruction::Label(label.clone());
+                asm_instructions.push(label_instruction);
+            }
         }
     }
-    asm_instructions
+    Ok(asm_instructions)
 }
 
-/// Converts a `TackyUnaryOperator` to its corresponding `AssemblyUnaryOperator`.
-///
-/// # Arguments
-///
-/// * `tacky_operator`: A reference to a `TackyUnaryOperator` enum value.
-///
-/// # Returns
-///
-/// An `AssemblyUnaryOperator` enum value that represents the equivalent operation.
-fn convert_unary_operator(tacky_unary_operator: &TackyUnaryOperator) -> AssemblyUnaryOperator {
-    match tacky_unary_operator {
-        TackyUnaryOperator::Negate => AssemblyUnaryOperator::Neg,
-        TackyUnaryOperator::Complement => AssemblyUnaryOperator::Not,
-        TackyUnaryOperator::Not => todo!(),
-    }
-}
-
-/// Converts a TackyBinaryOperator to an AssemblyBinaryOperator.
-///
-/// # Arguments
-///
-/// * `tacky_binary_operator`: A reference to the TackyBinaryOperator to convert.
-///
-/// # Returns
-///
-/// An `Option<AssemblyBinaryOperator>` representing the converted operator, or `None` if the conversion is not supported.
-fn convert_binary_operator(
+fn convert_condition_code(
     tacky_binary_operator: &TackyBinaryOperator,
-) -> Option<AssemblyBinaryOperator> {
+) -> Result<AssemblyConditionCode, CodegenError> {
     match tacky_binary_operator {
-        TackyBinaryOperator::Add => Some(AssemblyBinaryOperator::Add),
-        TackyBinaryOperator::Subtract => Some(AssemblyBinaryOperator::Sub),
-        TackyBinaryOperator::Multiply => Some(AssemblyBinaryOperator::Mult),
-        TackyBinaryOperator::Divide => None,
-        TackyBinaryOperator::Remainder => None,
-        TackyBinaryOperator::Equal => todo!(),
-        TackyBinaryOperator::NotEqual => todo!(),
-        TackyBinaryOperator::LessThan => todo!(),
-        TackyBinaryOperator::GreaterThan => todo!(),
-        TackyBinaryOperator::LessThanEqual => todo!(),
-        TackyBinaryOperator::GreaterThanEqual => todo!(),
+        TackyBinaryOperator::Equal => Ok(AssemblyConditionCode::E),
+        TackyBinaryOperator::NotEqual => Ok(AssemblyConditionCode::NE),
+        TackyBinaryOperator::LessThan => Ok(AssemblyConditionCode::L),
+        TackyBinaryOperator::GreaterThan => Ok(AssemblyConditionCode::G),
+        TackyBinaryOperator::LessThanEqual => Ok(AssemblyConditionCode::LE),
+        TackyBinaryOperator::GreaterThanEqual => Ok(AssemblyConditionCode::GE),
+        _ => Err(CodegenError::UnsupportedConditionCodeConversion {
+            operator: tacky_binary_operator.clone(),
+        }),
     }
 }
 
@@ -343,9 +411,25 @@ fn pseudoregister_replacement_pass(instructions: &mut Vec<AssemblyInstruction>) 
             AssemblyInstruction::Idiv { operand } => {
                 convert_pseudo_register(operand, &mut identifier_offsets, &mut offset_counter);
             }
+            AssemblyInstruction::Cmp { left, right } => {
+                convert_pseudo_register(left, &mut identifier_offsets, &mut offset_counter);
+                convert_pseudo_register(right, &mut identifier_offsets, &mut offset_counter);
+            }
+            AssemblyInstruction::SetCC {
+                condition: _,
+                operand,
+            } => {
+                convert_pseudo_register(operand, &mut identifier_offsets, &mut offset_counter);
+            }
             AssemblyInstruction::Cdq => {}
             AssemblyInstruction::AllocateStack { stack_offset: _ } => {}
             AssemblyInstruction::Ret => {}
+            AssemblyInstruction::Jmp { label: _ } => {}
+            AssemblyInstruction::JmpCC {
+                condition: _,
+                label: _,
+            } => {}
+            AssemblyInstruction::Label(_) => {}
         }
     }
     offset_counter
@@ -501,10 +585,45 @@ fn fixup_asm_instruction(asm_instruction: &AssemblyInstruction) -> Vec<AssemblyI
             };
             vec![instr1, instr2]
         }
+        AssemblyInstruction::Cmp { left, right } => match (left, right) {
+            (AssemblyOperand::Stack(_), AssemblyOperand::Stack(_)) => {
+                let instr1 = AssemblyInstruction::Mov {
+                    source: left.clone(),
+                    destination: register_r10.clone(),
+                };
+                let instr2 = AssemblyInstruction::Cmp {
+                    left: register_r10,
+                    right: right.clone(),
+                };
+                vec![instr1, instr2]
+            }
+            (left, AssemblyOperand::Imm(constant)) => {
+                let instr1 = AssemblyInstruction::Mov {
+                    source: AssemblyOperand::Imm(*constant),
+                    destination: register_r11.clone(),
+                };
+                let instr2 = AssemblyInstruction::Cmp {
+                    left: left.clone(),
+                    right: register_r11.clone(),
+                };
+                vec![instr1, instr2]
+            }
+            _ => vec![asm_instruction.clone()],
+        },
         AssemblyInstruction::Unary { op: _, operand: _ } => vec![asm_instruction.clone()],
         AssemblyInstruction::Cdq => vec![asm_instruction.clone()],
         AssemblyInstruction::AllocateStack { stack_offset: _ } => vec![asm_instruction.clone()],
         AssemblyInstruction::Ret => vec![asm_instruction.clone()],
+        AssemblyInstruction::Jmp { label: _ } => vec![asm_instruction.clone()],
+        AssemblyInstruction::JmpCC {
+            condition: _,
+            label: _,
+        } => vec![asm_instruction.clone()],
+        AssemblyInstruction::Label(_) => vec![asm_instruction.clone()],
+        AssemblyInstruction::SetCC {
+            condition: _,
+            operand: _,
+        } => vec![asm_instruction.clone()],
     }
 }
 
@@ -528,7 +647,7 @@ mod tests {
         let result = instruction_conversion_pass(&tacky_instructions);
         assert_eq!(
             result,
-            vec![
+            Ok(vec![
                 AssemblyInstruction::Mov {
                     source: AssemblyOperand::Imm(1),
                     destination: AssemblyOperand::Pseudo(identifier.clone()),
@@ -542,7 +661,7 @@ mod tests {
                     destination: AssemblyOperand::Register(AssemblyRegister::AX),
                 },
                 AssemblyInstruction::Ret,
-            ]
+            ])
         );
     }
 
