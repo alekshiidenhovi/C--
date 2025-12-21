@@ -1,0 +1,33 @@
+---
+source: tests/test_e2e.rs
+expression: tokens
+input_file: tests/test_programs/binary_ampersand.c
+---
+[
+    IntKeyword,
+    Identifier(
+        "main",
+    ),
+    OpenParen,
+    VoidKeyword,
+    CloseParen,
+    OpenBrace,
+    ReturnKeyword,
+    OpenParen,
+    Constant(
+        1,
+    ),
+    DoubleAmpersand,
+    OpenParen,
+    Constant(
+        1,
+    ),
+    LessThan,
+    Constant(
+        2,
+    ),
+    CloseParen,
+    CloseParen,
+    Semicolon,
+    CloseBrace,
+]

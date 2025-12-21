@@ -1,0 +1,37 @@
+---
+source: tests/test_e2e.rs
+expression: tokens
+input_file: tests/test_programs/binary_or.c
+---
+[
+    IntKeyword,
+    Identifier(
+        "main",
+    ),
+    OpenParen,
+    VoidKeyword,
+    CloseParen,
+    OpenBrace,
+    ReturnKeyword,
+    OpenParen,
+    Constant(
+        2,
+    ),
+    GreaterThan,
+    Constant(
+        3,
+    ),
+    CloseParen,
+    DoublePipe,
+    OpenParen,
+    Constant(
+        1,
+    ),
+    LessThan,
+    Constant(
+        2,
+    ),
+    CloseParen,
+    Semicolon,
+    CloseBrace,
+]

@@ -1,0 +1,31 @@
+---
+source: tests/test_e2e.rs
+expression: prettied_assembly_code
+input_file: tests/test_programs/binary_or.c
+---
+    .globl _main
+_main:
+    pushq %rbp
+    movq %rsp, %rbp
+    subq $-12, %rsp
+    movl $2, %r11d
+    cmpl $3, %r11d
+    movl $0, -4(%rbp)
+    setg -4(%rbp)
+    cmpl $0, -4(%rbp)
+    jne Lor_true0
+    movl $1, %r11d
+    cmpl $2, %r11d
+    movl $0, -8(%rbp)
+    setl -8(%rbp)
+    cmpl $0, -8(%rbp)
+    jne Lor_true0
+    movl $0, -12(%rbp)
+    jmp Lor_end1
+Lor_true0:
+    movl $1, -12(%rbp)
+Lor_end1:
+    movl -12(%rbp), %eax
+    movq %rbp, %rsp
+    popq %rbp
+    ret

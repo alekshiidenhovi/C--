@@ -1,0 +1,29 @@
+---
+source: tests/test_e2e.rs
+expression: tacky_ast
+input_file: tests/test_programs/binary_comparison.c
+---
+Program {
+    function: Function {
+        identifier: "main",
+        instructions: [
+            Binary {
+                operator: LessThan,
+                source1: Constant(
+                    1,
+                ),
+                source2: Constant(
+                    2,
+                ),
+                destination: Variable(
+                    "tmp.0",
+                ),
+            },
+            Return {
+                value: Variable(
+                    "tmp.0",
+                ),
+            },
+        ],
+    },
+}

@@ -1,0 +1,78 @@
+---
+source: tests/test_e2e.rs
+expression: tacky_ast
+input_file: tests/test_programs/binary_or.c
+---
+Program {
+    function: Function {
+        identifier: "main",
+        instructions: [
+            Binary {
+                operator: GreaterThan,
+                source1: Constant(
+                    2,
+                ),
+                source2: Constant(
+                    3,
+                ),
+                destination: Variable(
+                    "tmp.0",
+                ),
+            },
+            JumpIfNotZero {
+                condition: Variable(
+                    "tmp.0",
+                ),
+                target: "or_true0",
+            },
+            Binary {
+                operator: LessThan,
+                source1: Constant(
+                    1,
+                ),
+                source2: Constant(
+                    2,
+                ),
+                destination: Variable(
+                    "tmp.1",
+                ),
+            },
+            JumpIfNotZero {
+                condition: Variable(
+                    "tmp.1",
+                ),
+                target: "or_true0",
+            },
+            Copy {
+                source: Constant(
+                    0,
+                ),
+                destination: Variable(
+                    "tmp.2",
+                ),
+            },
+            Jump {
+                target: "or_end1",
+            },
+            Label(
+                "or_true0",
+            ),
+            Copy {
+                source: Constant(
+                    1,
+                ),
+                destination: Variable(
+                    "tmp.2",
+                ),
+            },
+            Label(
+                "or_end1",
+            ),
+            Return {
+                value: Variable(
+                    "tmp.2",
+                ),
+            },
+        ],
+    },
+}

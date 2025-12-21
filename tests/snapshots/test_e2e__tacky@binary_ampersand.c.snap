@@ -1,0 +1,66 @@
+---
+source: tests/test_e2e.rs
+expression: tacky_ast
+input_file: tests/test_programs/binary_ampersand.c
+---
+Program {
+    function: Function {
+        identifier: "main",
+        instructions: [
+            JumpIfZero {
+                condition: Constant(
+                    1,
+                ),
+                target: "and_false0",
+            },
+            Binary {
+                operator: LessThan,
+                source1: Constant(
+                    1,
+                ),
+                source2: Constant(
+                    2,
+                ),
+                destination: Variable(
+                    "tmp.0",
+                ),
+            },
+            JumpIfZero {
+                condition: Variable(
+                    "tmp.0",
+                ),
+                target: "and_false0",
+            },
+            Copy {
+                source: Constant(
+                    1,
+                ),
+                destination: Variable(
+                    "tmp.1",
+                ),
+            },
+            Jump {
+                target: "and_end1",
+            },
+            Label(
+                "and_false0",
+            ),
+            Copy {
+                source: Constant(
+                    0,
+                ),
+                destination: Variable(
+                    "tmp.1",
+                ),
+            },
+            Label(
+                "and_end1",
+            ),
+            Return {
+                value: Variable(
+                    "tmp.1",
+                ),
+            },
+        ],
+    },
+}

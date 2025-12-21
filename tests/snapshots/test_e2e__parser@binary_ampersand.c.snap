@@ -1,0 +1,27 @@
+---
+source: tests/test_e2e.rs
+expression: cmm_ast
+input_file: tests/test_programs/binary_ampersand.c
+---
+Program {
+    function: Function {
+        identifier: "main",
+        body: Return {
+            expression: Binary {
+                operator: And,
+                left: IntegerConstant {
+                    value: 1,
+                },
+                right: Binary {
+                    operator: LessThan,
+                    left: IntegerConstant {
+                        value: 1,
+                    },
+                    right: IntegerConstant {
+                        value: 2,
+                    },
+                },
+            },
+        },
+    },
+}

@@ -1,0 +1,18 @@
+---
+source: tests/test_e2e.rs
+expression: prettied_assembly_code
+input_file: tests/test_programs/binary_comparison.c
+---
+    .globl _main
+_main:
+    pushq %rbp
+    movq %rsp, %rbp
+    subq $-4, %rsp
+    movl $1, %r11d
+    cmpl $2, %r11d
+    movl $0, -4(%rbp)
+    setl -4(%rbp)
+    movl -4(%rbp), %eax
+    movq %rbp, %rsp
+    popq %rbp
+    ret

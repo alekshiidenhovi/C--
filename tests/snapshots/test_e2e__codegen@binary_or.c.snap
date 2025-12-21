@@ -1,0 +1,133 @@
+---
+source: tests/test_e2e.rs
+expression: asm_ast
+input_file: tests/test_programs/binary_or.c
+---
+Program {
+    function: Function {
+        identifier: "main",
+        instructions: [
+            AllocateStack {
+                stack_offset: -12,
+            },
+            Mov {
+                source: Imm(
+                    2,
+                ),
+                destination: Register(
+                    R11,
+                ),
+            },
+            Cmp {
+                left: Imm(
+                    3,
+                ),
+                right: Register(
+                    R11,
+                ),
+            },
+            Mov {
+                source: Imm(
+                    0,
+                ),
+                destination: Stack(
+                    -4,
+                ),
+            },
+            SetCC {
+                condition: G,
+                operand: Stack(
+                    -4,
+                ),
+            },
+            Cmp {
+                left: Imm(
+                    0,
+                ),
+                right: Stack(
+                    -4,
+                ),
+            },
+            JmpCC {
+                condition: NE,
+                label: "or_true0",
+            },
+            Mov {
+                source: Imm(
+                    1,
+                ),
+                destination: Register(
+                    R11,
+                ),
+            },
+            Cmp {
+                left: Imm(
+                    2,
+                ),
+                right: Register(
+                    R11,
+                ),
+            },
+            Mov {
+                source: Imm(
+                    0,
+                ),
+                destination: Stack(
+                    -8,
+                ),
+            },
+            SetCC {
+                condition: L,
+                operand: Stack(
+                    -8,
+                ),
+            },
+            Cmp {
+                left: Imm(
+                    0,
+                ),
+                right: Stack(
+                    -8,
+                ),
+            },
+            JmpCC {
+                condition: NE,
+                label: "or_true0",
+            },
+            Mov {
+                source: Imm(
+                    0,
+                ),
+                destination: Stack(
+                    -12,
+                ),
+            },
+            Jmp {
+                label: "or_end1",
+            },
+            Label(
+                "or_true0",
+            ),
+            Mov {
+                source: Imm(
+                    1,
+                ),
+                destination: Stack(
+                    -12,
+                ),
+            },
+            Label(
+                "or_end1",
+            ),
+            Mov {
+                source: Stack(
+                    -12,
+                ),
+                destination: Register(
+                    AX,
+                ),
+            },
+            Ret,
+        ],
+    },
+}

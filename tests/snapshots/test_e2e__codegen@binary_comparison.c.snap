@@ -1,0 +1,54 @@
+---
+source: tests/test_e2e.rs
+expression: asm_ast
+input_file: tests/test_programs/binary_comparison.c
+---
+Program {
+    function: Function {
+        identifier: "main",
+        instructions: [
+            AllocateStack {
+                stack_offset: -4,
+            },
+            Mov {
+                source: Imm(
+                    1,
+                ),
+                destination: Register(
+                    R11,
+                ),
+            },
+            Cmp {
+                left: Imm(
+                    2,
+                ),
+                right: Register(
+                    R11,
+                ),
+            },
+            Mov {
+                source: Imm(
+                    0,
+                ),
+                destination: Stack(
+                    -4,
+                ),
+            },
+            SetCC {
+                condition: L,
+                operand: Stack(
+                    -4,
+                ),
+            },
+            Mov {
+                source: Stack(
+                    -4,
+                ),
+                destination: Register(
+                    AX,
+                ),
+            },
+            Ret,
+        ],
+    },
+}
