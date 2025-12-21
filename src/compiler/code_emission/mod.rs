@@ -1,6 +1,6 @@
 use crate::compiler::code_gen::assembly_ast::{
-    AssemblyAst, AssemblyBinaryOperator, AssemblyFunction, AssemblyInstruction, AssemblyOperand,
-    AssemblyRegister, AssemblyUnaryOperator,
+    AssemblyAst, AssemblyBinaryOperator, AssemblyConditionCode, AssemblyFunction,
+    AssemblyInstruction, AssemblyOperand, AssemblyRegister, AssemblyUnaryOperator,
 };
 
 /// Emits assembly code from an abstract syntax tree.
@@ -63,13 +63,18 @@ fn format_instruction(instruction: &AssemblyInstruction) -> String {
         } => wrap_instruction(
             format!(
                 "movl {}, {}",
-                format_operand(source),
-                format_operand(destination)
+                format_operand(source, false),
+                format_operand(destination, false)
             )
             .as_str(),
         ),
         AssemblyInstruction::Unary { op, operand } => wrap_instruction(
-            format!("{} {}", format_unary_operator(op), format_operand(operand)).as_str(),
+            format!(
+                "{} {}",
+                format_unary_operator(op),
+                format_operand(operand, false)
+            )
+            .as_str(),
         ),
         AssemblyInstruction::Binary {
             op,
@@ -79,23 +84,39 @@ fn format_instruction(instruction: &AssemblyInstruction) -> String {
             format!(
                 "{} {}, {}",
                 format_binary_operator(op),
-                format_operand(source),
-                format_operand(destination)
+                format_operand(source, false),
+                format_operand(destination, false)
             )
             .as_str(),
         ),
-        AssemblyInstruction::Cmp { left, right } => todo!(),
+        AssemblyInstruction::Cmp { left, right } => wrap_instruction(
+            format!(
+                "cmpl {}, {}",
+                format_operand(left, false),
+                format_operand(right, false)
+            )
+            .as_str(),
+        ),
         AssemblyInstruction::Idiv { operand } => {
-            wrap_instruction(format!("idivl {}", format_operand(operand)).as_str())
+            wrap_instruction(format!("idivl {}", format_operand(operand, false)).as_str())
         }
         AssemblyInstruction::AllocateStack { stack_offset } => {
             wrap_instruction(format!("subq ${}, %rsp", stack_offset).as_str())
         }
         AssemblyInstruction::Cdq => wrap_instruction("cdq"),
-        AssemblyInstruction::Jmp { label } => todo!(),
-        AssemblyInstruction::JmpCC { condition, label } => todo!(),
-        AssemblyInstruction::SetCC { condition, operand } => todo!(),
-        AssemblyInstruction::Label(label) => todo!(),
+        AssemblyInstruction::Jmp { label } => wrap_instruction(format!("jmp L{}", label).as_str()),
+        AssemblyInstruction::JmpCC { condition, label } => wrap_instruction(
+            format!("j{} L{}", transform_condition_code(condition), label,).as_str(),
+        ),
+        AssemblyInstruction::SetCC { condition, operand } => wrap_instruction(
+            format!(
+                "set{} {}",
+                transform_condition_code(condition),
+                format_operand(operand, true)
+            )
+            .as_str(),
+        ),
+        AssemblyInstruction::Label(label) => wrap_label(format!("L{}", label).as_str()),
         AssemblyInstruction::Ret => {
             let mut epilogue = wrap_instruction("movq %rbp, %rsp").to_string();
             epilogue.push_str(wrap_instruction("popq %rbp").as_str());
@@ -143,14 +164,15 @@ fn format_binary_operator(op: &AssemblyBinaryOperator) -> String {
 /// # Arguments
 ///
 /// * `operand`: A reference to the `Operand` to be emitted.
+/// * `use_1byte_representation`: A boolean flag indicating whether to use the 1-byte register representation. 4-byte register representation is used, if false.
 ///
 /// # Returns
 ///
 /// A `String` representing the assembly code for the operand.
-fn format_operand(operand: &AssemblyOperand) -> String {
+fn format_operand(operand: &AssemblyOperand, use_1byte_representation: bool) -> String {
     match operand {
         AssemblyOperand::Imm(value) => format_immediate_value(value),
-        AssemblyOperand::Register(register) => format_register(register),
+        AssemblyOperand::Register(register) => format_register(register, use_1byte_representation),
         AssemblyOperand::Stack(offset) => format_stack_offset(offset),
         AssemblyOperand::Pseudo(_) => panic!(
             "Pseudo registers should not be emitted to assembly. Have you converted them correctly to actual register addresses?"
@@ -163,16 +185,29 @@ fn format_operand(operand: &AssemblyOperand) -> String {
 /// # Arguments
 ///
 /// * `register`: The `Register` enum variant to convert.
+/// * `use_1byte_representation`: A boolean flag indicating whether to use the 1-byte register representation. 4-byte register representation is used, if false.
 ///
 /// # Returns
 ///
 /// A `String` representing the AT&T assembly syntax for the given register.
-fn format_register(register: &AssemblyRegister) -> String {
+fn format_register(register: &AssemblyRegister, use_1byte_representation: bool) -> String {
     match register {
-        AssemblyRegister::AX => "%eax".to_string(),
-        AssemblyRegister::DX => "%edx".to_string(),
-        AssemblyRegister::R10 => "%r10d".to_string(),
-        AssemblyRegister::R11 => "%r11d".to_string(),
+        AssemblyRegister::AX => match use_1byte_representation {
+            true => "%al".to_string(),
+            false => "%eax".to_string(),
+        },
+        AssemblyRegister::DX => match use_1byte_representation {
+            true => "%dl".to_string(),
+            false => "%edx".to_string(),
+        },
+        AssemblyRegister::R10 => match use_1byte_representation {
+            true => "%r10b".to_string(),
+            false => "%r10d".to_string(),
+        },
+        AssemblyRegister::R11 => match use_1byte_representation {
+            true => "%r11b".to_string(),
+            false => "%r11d".to_string(),
+        },
     }
 }
 
@@ -227,4 +262,24 @@ fn wrap_label(label: &str) -> String {
 /// A formatted string with a tab at the beginning and a newline at the end.
 fn wrap_instruction(instruction: &str) -> String {
     format!("\t{}\n", instruction)
+}
+
+/// Converts an `AssemblyConditionCode` enum variant into its corresponding string representation.
+///
+/// # Arguments
+///
+/// * `condition_code` - The `AssemblyConditionCode` enum variant to convert.
+///
+/// # Returns
+///
+/// A `String` representing the condition code (e.g., "NE", "EQ").
+fn transform_condition_code(condition_code: &AssemblyConditionCode) -> String {
+    match condition_code {
+        AssemblyConditionCode::E => "e".to_string(),
+        AssemblyConditionCode::NE => "ne".to_string(),
+        AssemblyConditionCode::G => "g".to_string(),
+        AssemblyConditionCode::L => "l".to_string(),
+        AssemblyConditionCode::GE => "ge".to_string(),
+        AssemblyConditionCode::LE => "le".to_string(),
+    }
 }
